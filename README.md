@@ -25,6 +25,7 @@
 Android-приложение с отображением телеметрии
 # Архитектура системы
 <img width="1280" height="720" alt="Архитектура" src="https://github.com/user-attachments/assets/077b2639-a7ca-4a47-8578-8013a4580a08" />
+
 # Принцип работы системы RoomClimate
 
 Система состоит из трёх программ. На Raspberry Pi выполняются две: программа сбора данных collector.py и HTTP-сервер на FastAPI. На смартфоне выполняется Android-приложение.
