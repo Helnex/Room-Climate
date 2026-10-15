@@ -1,0 +1,42 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      SQLITE_PATH: /data/roomclimate.db
+      CURRENT_TTL_SECONDS: "60"
+    volumes:
+      - sqlite_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: python -m app.worker
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      SQLITE_PATH: /data/roomclimate.db
+    volumes:
+      - sqlite_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+volumes:
+  sqlite_data:

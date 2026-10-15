@@ -1,0 +1,10 @@
+Базовый URL задаётся в приложении.
+
+GET  {base}/health
+GET  {base}/telemetry/current?device_id=pi-1
+GET  {base}/telemetry/history?device_id=pi-1
+GET  {base}/settings?device_id=pi-1
+PUT  {base}/settings?device_id=pi-1
+     {"temp_min": 18, "temp_max": 26}
+
+POST {base}/telemetry   — только сборщик на Pi, Android этот метод не вызывает.
