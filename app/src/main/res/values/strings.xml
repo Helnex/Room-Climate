@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">RoomControl</string>
+
+    <!-- Экран Вход -->
+    <string name="login_title">Вход в аккаунт</string>
+    <string name="login_subtitle">Введите почту и пароль, чтобы\nпродолжить</string>
+    <string name="hint_email">email@domain.com</string>
+    <string name="hint_password">Пароль</string>
+    <string name="btn_login">Войти</string>
+    <string name="or_text">или</string>
+    <string name="btn_register">Зарегистрироваться</string>
+    <string name="terms_text">Нажимая кнопку, вы соглашаетесь с Условиями\nиспользования и Политикой\nконфиденциальности</string>
+    <!-- Экран Регистрация -->
+    <string name="register_title">Регистрация</string>
+    <string name="register_subtitle">Создайте аккаунт</string>
+    <string name="register_desc">Введите имя, фамилию и почту, чтобы начать\nотслеживать климат дома.</string>
+    <string name="hint_name">Имя</string>
+    <string name="hint_surname">Фамилия</string>
+    <string name="hint_email_reg">Почта</string>
+    <string name="btn_create_account">Создать аккаунт</string>
+    <string name="already_have_account">Уже есть аккаунт? Войти</string>
+    <string name="header_label">КЛИМАТ ПОМЕЩЕНИЯ</string>
+    <string name="header_title">Устройства</string>
+    <!-- Экран Аккаунт -->
+    <string name="account_title">Аккаунт</string>
+    <string name="edit_profile">Редактировать профиль</string>
+    <string name="my_home">Мой дом</string>
+    <string name="my_home_desc">0 комнат · 0 базовых датчиков · 1 участник</string>
+    <string name="settings_account">НАСТРОЙКИ АККАУНТА</string>
+    <string name="climate_notifications">Уведомления о климате</string>
+    <string name="climate_notifications_desc">Если показатели выходят из нормы</string>
+    <string name="family_access">Доступ для семьи</string>
+    <string name="family_access_desc">Вы</string>
+    <string name="security_data">Безопасность и данные</string>
+    <string name="security_data_desc">Пароль, вход и история измерений</string>
+    <string name="support_title">ПОДДЕРЖКА</string>
+    <string name="help_feedback">Помощь и обратная связь</string>
+    <string name="help_feedback_desc">Поможем настроить климат дома</string>
+    <string name="logout">Выйти из аккаунта</string>
+    <string name="version_text">Мониторинг климата · Версия 1.0.0</string>
+</resources>
