@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+.git
+data
+.venv
+README.md
+smoke_test.py
+simulate_collector.py
