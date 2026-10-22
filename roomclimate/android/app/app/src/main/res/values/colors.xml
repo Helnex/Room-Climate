@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_default">#F4F6F2</color>
+    <color name="gray_text">#778178</color>
+    <color name="gray_text_light">#A0A8A1</color>
+    <color name="gray_light">#E5EAE2</color>
+    <color name="dark_text">#22352C</color>
+    <color name="green_primary">#397454</color>
+    <color name="green_light">#E5EEDF</color>
+    <color name="green_card">#EFF4EB</color>
+    <color name="white">#FFFFFF</color>
+</resources>

@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Базовая тема приложения (светлая, без верхней панели) -->
+    <style name="Base.Theme.RoomClimate" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Здесь можно переопределить цвета, если нужно -->
+    </style>
+
+    <style name="Theme.RoomClimate" parent="Base.Theme.RoomClimate" />
+</resources>
