@@ -1,16 +1,17 @@
-# android
+## 🏗 Архитектура Android-приложения
 
-Приложение Java, minSdk 26 (Android 8).  
-Интерфейс: Камалетдинов Максим. Сеть, уведомления, Git: Вековшинин Иван.
+Проект написан на **Java** (Android SDK). Код разделен по слоям для удобства масштабирования и командной работы:
 
-Создать проект в Android Studio в этой папке (Empty Activity, Java, package `com.roomclimate.app`). Дальше код класть так:
+*   **`ui/`** — Слой интерфейса. Содержит экраны `MainActivity`, `RegisterActivity`, `AccountActivity`. Отвечает за отображение и навигацию. *(В работе у Максима)*.
+*   **`network/`** — Сетевой слой. Содержит `ApiClient` (настройка Retrofit), `ApiService` (эндпоинты сервера) и `Repository` (связующее звено для запросов).
+*   **`models/`** — Слой данных. Java-классы для парсинга JSON от сервера (`LoginRequest`, `LoginResponse`, `Telemetry`).
+*   **`notify/`** — Слой уведомлений (заготовка для будущих push-сообщений).
 
-```text
-app/src/main/java/com/roomclimate/app/
-  ui/         экраны, график, пороги     — Максим
-  network/    HTTP к серверу             — Иван
-  notify/     уведомления по порогам     — Иван
-```
+###  Как это запустить (Инструкция)
+1. Склонируйте репозиторий: `git clone https://github.com/Helnex/Smart-House.git`
+2. Откройте в Android Studio папку: `roomclimate/android/app`
+3. Дождитесь синхронизации Gradle.
+4. Нажмите **Run ▶** для запуска на эмуляторе.
 
 Базовый URL сервера (настройки приложения, не хардкод навсегда):
 
