@@ -2,14 +2,14 @@
 
 Проект написан на **Java** (Android SDK). Код разделен по слоям для удобства масштабирования и командной работы:
 
-*   **`ui/`** — Слой интерфейса. Содержит экраны `MainActivity`, `RegisterActivity`, `AccountActivity`. Отвечает за отображение и навигацию. *(В работе у Максима)*.
-*   **`network/`** — Сетевой слой. Содержит `ApiClient` (настройка Retrofit), `ApiService` (эндпоинты сервера) и `Repository` (связующее звено для запросов).
-*   **`models/`** — Слой данных. Java-классы для парсинга JSON от сервера (`LoginRequest`, `LoginResponse`, `Telemetry`).
-*   **`notify/`** — Слой уведомлений (заготовка для будущих push-сообщений).
+*   **`ui/`** — Слой интерфейса.
+*   **`network/`** — Сетевой слой.
+*   **`models/`** — Слой данных. Java-классы для парсинга JSON от сервера
+*   **`notify/`** — Слой уведомлений
 
 ###  Как это запустить (Инструкция)
 1. Склонируйте репозиторий: `git clone https://github.com/Helnex/Smart-House.git`
-2. Откройте в Android Studio папку: `roomclimate/android/app`
+2. Откройте в Android Studio папку: `roomclimate/android/RoomClimateApp`
 3. Дождитесь синхронизации Gradle.
 4. Нажмите **Run ▶** для запуска на эмуляторе.
 
