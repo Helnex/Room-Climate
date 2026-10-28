@@ -8,7 +8,7 @@
 *   **`notify/`** — Слой уведомлений
 
 ###  Как это запустить (Инструкция)
-1. Склонируйте репозиторий: `git clone https://github.com/Helnex/Smart-House.git`
+1. Склонируйте репозиторий: `git clone https://github.com/Helnex/Room-Climate.git`
 2. Откройте в Android Studio папку: `roomclimate/android/RoomClimateApp`
 3. Дождитесь синхронизации Gradle.
 4. Нажмите **Run ▶** для запуска на эмуляторе.
