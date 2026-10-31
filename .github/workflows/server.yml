@@ -1,0 +1,32 @@
+name: server-ci
+
+on:
+  push:
+    paths:
+      - "roomclimate/server/**"
+      - ".github/workflows/server.yml"
+  pull_request:
+    paths:
+      - "roomclimate/server/**"
+      - ".github/workflows/server.yml"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: roomclimate/server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and start stack
+        run: docker compose up --build -d
+
+      - name: Smoke test
+        run: python3 smoke_test.py http://127.0.0.1:8000
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down
