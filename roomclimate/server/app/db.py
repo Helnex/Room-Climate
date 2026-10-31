@@ -54,11 +54,89 @@ def init_db() -> None:
                 temp_max REAL NOT NULL,
                 FOREIGN KEY(device_id) REFERENCES devices(id)
             );
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                name TEXT NOT NULL,
+                surname TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS sessions (
+                token TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_sessions_user
+                ON sessions(user_id);
             """
         )
         conn.commit()
     finally:
         conn.close()
+
+
+def create_user(
+    conn: sqlite3.Connection,
+    email: str,
+    password_hash: str,
+    name: str,
+    surname: str,
+) -> sqlite3.Row:
+    conn.execute(
+        """
+        INSERT INTO users(email, password_hash, name, surname, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (email, password_hash, name, surname, utc_now()),
+    )
+    row = conn.execute(
+        "SELECT id, email, name, surname, created_at FROM users WHERE email = ? COLLATE NOCASE",
+        (email,),
+    ).fetchone()
+    assert row is not None
+    return row
+
+
+def get_user_by_email(conn: sqlite3.Connection, email: str) -> sqlite3.Row | None:
+    return conn.execute(
+        """
+        SELECT id, email, password_hash, name, surname, created_at
+        FROM users WHERE email = ? COLLATE NOCASE
+        """,
+        (email,),
+    ).fetchone()
+
+
+def get_user_by_id(conn: sqlite3.Connection, user_id: int) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT id, email, name, surname, created_at FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+
+
+def create_session(conn: sqlite3.Connection, user_id: int, token: str) -> None:
+    conn.execute(
+        "INSERT INTO sessions(token, user_id, created_at) VALUES (?, ?, ?)",
+        (token, user_id, utc_now()),
+    )
+
+
+def get_user_by_token(conn: sqlite3.Connection, token: str) -> sqlite3.Row | None:
+    return conn.execute(
+        """
+        SELECT u.id, u.email, u.name, u.surname, u.created_at
+        FROM sessions s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.token = ?
+        """,
+        (token,),
+    ).fetchone()
+
+
+def delete_session(conn: sqlite3.Connection, token: str) -> None:
+    conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
 
 
 def ensure_device_and_sensor(conn: sqlite3.Connection, device_id: str, sensor_type: str, unit: str) -> int:

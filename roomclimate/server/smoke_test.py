@@ -98,6 +98,45 @@ def main() -> None:
         code == 200 and got.get("temp_min") == 18 and got.get("temp_max") == 26,
         str(got),
     )
+
+    email = f"smoke_{int(time.time())}@example.com"
+    code, registered = req(
+        "POST",
+        "/auth/register",
+        {
+            "name": "Иван",
+            "surname": "Тестов",
+            "email": email,
+            "password": "secret12",
+        },
+    )
+    check(
+        "POST /auth/register",
+        code == 200 and registered.get("token") and registered.get("email") == email,
+        str(registered),
+    )
+
+    code, again = req(
+        "POST",
+        "/auth/register",
+        {
+            "name": "Иван",
+            "surname": "Тестов",
+            "email": email,
+            "password": "secret12",
+        },
+    )
+    check("повторная регистрация отклоняется", code == 409, str(again))
+
+    code, logged = req("POST", "/auth/login", {"email": email, "password": "secret12"})
+    check(
+        "POST /auth/login",
+        code == 200 and logged.get("token") and logged.get("name") == "Иван",
+        str(logged),
+    )
+
+    code, bad_login = req("POST", "/auth/login", {"email": email, "password": "wrong"})
+    check("неверный пароль отклоняется", code == 401, str(bad_login))
     print("Локальная проверка прошла.")
 
 

@@ -3,7 +3,9 @@
 REST API на Linux в Docker. Владельцы: Кобзев (код API и БД), Крючков (запуск Compose и сеть).
 
 Поток: `POST /telemetry` → Redis (`current`, `stream`) → обработчик → SQLite.  
-Клиент: `GET /telemetry/current`, `GET /telemetry/history`, `GET/PUT /settings`.
+Клиент: `POST /auth/register`, `POST /auth/login`, `GET /telemetry/current`, `GET /telemetry/history`, `GET/PUT /settings`.
+
+Пользователи и сессии лежат в той же SQLite (`users`, `sessions`), отдельная БД не нужна.
 
 ```powershell
 cd server

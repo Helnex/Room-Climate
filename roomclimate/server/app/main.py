@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+import sqlite3
+
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from redis.exceptions import RedisError
 
-from app import db
+from app import auth, db
 from app.config import settings
 from app.db import utc_now
 from app.redis_store import enqueue, read_current, redis_client, write_current
-from app.schemas import SettingsIn, TelemetryIn
+from app.schemas import LoginIn, RegisterIn, SettingsIn, TelemetryIn
 
 
 @asynccontextmanager
@@ -26,6 +28,95 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def _bearer_token(authorization: str | None) -> str:
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Нужен заголовок Authorization")
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token.strip():
+        raise HTTPException(status_code=401, detail="Ожидается Bearer-токен")
+    return token.strip()
+
+
+def _auth_response(user_row, token: str) -> dict:
+    payload = auth.user_payload(user_row)
+    payload["token"] = token
+    return payload
+
+
+@app.post("/auth/register")
+def register(body: RegisterIn):
+    email = _normalize_email(body.email)
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="Некорректный email")
+    name = body.name.strip()
+    surname = body.surname.strip()
+    if not name or not surname:
+        raise HTTPException(status_code=400, detail="Укажите имя и фамилию")
+
+    conn = db.connect()
+    try:
+        if db.get_user_by_email(conn, email) is not None:
+            raise HTTPException(status_code=409, detail="Пользователь с таким email уже есть")
+        user = db.create_user(conn, email, auth.hash_password(body.password), name, surname)
+        token = auth.new_token()
+        db.create_session(conn, int(user["id"]), token)
+        conn.commit()
+        return _auth_response(user, token)
+    except HTTPException:
+        conn.rollback()
+        raise
+    except sqlite3.IntegrityError as exc:
+        conn.rollback()
+        raise HTTPException(status_code=409, detail="Пользователь с таким email уже есть") from exc
+    finally:
+        conn.close()
+
+
+@app.post("/auth/login")
+def login(body: LoginIn):
+    email = _normalize_email(body.email)
+    conn = db.connect()
+    try:
+        user = db.get_user_by_email(conn, email)
+        if user is None or not auth.verify_password(body.password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Неверный email или пароль")
+        token = auth.new_token()
+        db.create_session(conn, int(user["id"]), token)
+        conn.commit()
+        return _auth_response(user, token)
+    finally:
+        conn.close()
+
+
+@app.get("/auth/me")
+def me(authorization: str | None = Header(default=None)):
+    token = _bearer_token(authorization)
+    conn = db.connect()
+    try:
+        user = db.get_user_by_token(conn, token)
+    finally:
+        conn.close()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Сессия недействительна")
+    return auth.user_payload(user)
+
+
+@app.post("/auth/logout")
+def logout(authorization: str | None = Header(default=None)):
+    token = _bearer_token(authorization)
+    conn = db.connect()
+    try:
+        db.delete_session(conn, token)
+        conn.commit()
+    finally:
+        conn.close()
+    return {"status": "ok"}
 
 
 @app.get("/health")

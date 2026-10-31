@@ -1,6 +1,14 @@
 Базовый URL задаётся в приложении.
 
 GET  {base}/health
+POST {base}/auth/register
+     {"name":"Иван","surname":"Вековшинин","email":"ivan@mail.com","password":"secret12"}
+POST {base}/auth/login
+     {"email":"ivan@mail.com","password":"secret12"}
+GET  {base}/auth/me
+     Authorization: Bearer <token>
+POST {base}/auth/logout
+     Authorization: Bearer <token>
 GET  {base}/telemetry/current?device_id=pi-1
 GET  {base}/telemetry/history?device_id=pi-1
 GET  {base}/settings?device_id=pi-1
