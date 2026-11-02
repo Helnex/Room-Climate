@@ -1,4 +1,6 @@
 package com.example.roomclimate.models;
 
-public class LoginResponse {
+/** @deprecated используйте {@link AuthResponse} */
+@Deprecated
+public class LoginResponse extends AuthResponse {
 }
