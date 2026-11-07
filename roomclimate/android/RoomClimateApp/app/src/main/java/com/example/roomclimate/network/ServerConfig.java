@@ -37,6 +37,10 @@ public final class ServerConfig {
         ApiClient.reset();
     }
 
+    public static void saveBaseUrl(Context context, String baseUrl) {
+        save(context, baseUrl, getDeviceId(context));
+    }
+
     public static String normalizeBaseUrl(String raw) {
         String url = raw == null ? "" : raw.trim();
         while (url.endsWith("/")) {

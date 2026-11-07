@@ -15,6 +15,8 @@ class TelemetryIn(BaseModel):
 class SettingsIn(BaseModel):
     temp_min: float
     temp_max: float
+    humidity_min: float = 30.0
+    humidity_max: float = 70.0
 
 
 class RegisterIn(BaseModel):

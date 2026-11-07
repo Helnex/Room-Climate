@@ -64,7 +64,9 @@
     <string name="updated_at">Обновлено: %1$s</string>
     <string name="updated_never">Нет свежих измерений</string>
     <string name="thresholds_unknown">Пороги ещё не загружены</string>
-    <string name="thresholds_range">Допустимо: %1$.1f … %2$.1f °C</string>
+    <string name="thresholds_range">Температура %1$.1f…%2$.1f °C · влажность %3$.1f…%4$.1f %%</string>
+    <string name="status_humidity_above">Влажность выше порога %1$.1f %%</string>
+    <string name="status_humidity_below">Влажность ниже порога %1$.1f %%</string>
     <string name="status_ok">Температура в норме</string>
     <string name="status_above">Выше порога %1$.1f °C</string>
     <string name="status_below">Ниже порога %1$.1f °C</string>
@@ -82,11 +84,16 @@
     <string name="history_loading">Загружаю историю…</string>
     <string name="history_count">Записей: %1$d · устройство %2$s</string>
     <string name="settings_server">Подключение к серверу</string>
-    <string name="settings_thresholds">Пороги температуры</string>
+    <string name="settings_thresholds">Пороги температуры и влажности</string>
     <string name="hint_base_url">http://10.0.2.2:8000</string>
+    <string name="server_searching">Подключение к серверу…</string>
+    <string name="server_ready">Сервер найден</string>
+    <string name="server_not_found">Сервер не найден. Компьютер с Docker должен быть включён и в той же Wi‑Fi</string>
     <string name="hint_device_id">pi-1</string>
     <string name="hint_temp_min">Минимум, °C</string>
     <string name="hint_temp_max">Максимум, °C</string>
+    <string name="hint_humidity_min">Влажность, минимум %</string>
+    <string name="hint_humidity_max">Влажность, максимум %</string>
     <string name="btn_save_connection">Сохранить адрес</string>
     <string name="btn_test_connection">Проверить связь</string>
     <string name="btn_save_thresholds">Сохранить пороги</string>
@@ -98,8 +105,12 @@
     <string name="health_ok">Сервер доступен · %1$s</string>
     <string name="health_bad">Сервер ответил с ошибкой: %1$d</string>
     <string name="notification_channel_name">Климат</string>
-    <string name="notification_channel_desc">Выход температуры за заданный диапазон</string>
-    <string name="notification_title">Температура вне нормы</string>
-    <string name="notification_above">Сейчас %1$s °C, верхний порог %2$s °C</string>
-    <string name="notification_below">Сейчас %1$s °C, нижний порог %2$s °C</string>
+    <string name="notification_channel_desc">Выход температуры или влажности за заданный диапазон</string>
+    <string name="notification_title">%1$s вне нормы</string>
+    <string name="notification_above">%1$s выше порога: сейчас %2$s %3$s, максимум %4$s</string>
+    <string name="notification_below">%1$s ниже порога: сейчас %2$s %3$s, минимум %4$s</string>
+    <string name="monitor_channel_name">Мониторинг климата</string>
+    <string name="monitor_channel_desc">Фоновая проверка порогов</string>
+    <string name="monitor_title">Следим за климатом</string>
+    <string name="monitor_text">Уведомим, если температура или влажность выйдут за порог</string>
 </resources>

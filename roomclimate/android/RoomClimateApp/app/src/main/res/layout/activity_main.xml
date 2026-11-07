@@ -33,11 +33,21 @@
             android:textSize="14sp"
             android:gravity="center" />
 
+        <TextView
+            android:id="@+id/tvServerStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="@string/server_searching"
+            android:textColor="@color/gray_text"
+            android:textSize="12sp" />
+
         <EditText
             android:id="@+id/editEmail"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="16dp"
             android:background="@drawable/bg_input_field"
             android:hint="@string/hint_email"
             android:inputType="textEmailAddress"
