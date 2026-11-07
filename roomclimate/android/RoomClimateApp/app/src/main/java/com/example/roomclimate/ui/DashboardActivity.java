@@ -17,8 +17,8 @@ import com.example.roomclimate.models.SettingsResponse;
 import com.example.roomclimate.network.ApiClient;
 import com.example.roomclimate.network.AppPermissions;
 import com.example.roomclimate.network.ServerConfig;
+import com.example.roomclimate.notify.ClimateMonitorService;
 import com.example.roomclimate.notify.ThresholdChecker;
-import com.example.roomclimate.notify.ThresholdNotifier;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -39,6 +39,8 @@ public class DashboardActivity extends AppCompatActivity {
 
     private Double lastMin;
     private Double lastMax;
+    private Double lastHumidityMin;
+    private Double lastHumidityMax;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,8 +61,8 @@ public class DashboardActivity extends AppCompatActivity {
 
         findViewById(R.id.btnRefresh).setOnClickListener(v -> refresh());
         BottomNav.bind(this, R.id.navDashboard);
-        ThresholdNotifier.ensureChannel(this);
         AppPermissions.request(this);
+        ClimateMonitorService.start(this);
     }
 
     @Override
@@ -104,10 +106,14 @@ public class DashboardActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     lastMin = response.body().tempMin;
                     lastMax = response.body().tempMax;
+                    lastHumidityMin = response.body().humidityMinOrDefault();
+                    lastHumidityMax = response.body().humidityMaxOrDefault();
                     tvThresholds.setText(getString(
                             R.string.thresholds_range,
                             lastMin,
-                            lastMax
+                            lastMax,
+                            lastHumidityMin,
+                            lastHumidityMax
                     ));
                 }
                 loadCurrent(deviceId);
@@ -159,6 +165,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         if (humidity != null) {
             tvHumidity.setText(getString(R.string.value_with_unit, humidity.value, humidity.unit));
+            applyHumidityThreshold(humidity.value, temperature);
         } else {
             tvHumidity.setText(R.string.value_placeholder);
         }
@@ -195,9 +202,24 @@ public class DashboardActivity extends AppCompatActivity {
         }
         tvStatus.setText(text);
         tvStatus.setTextColor(ContextCompat.getColor(this, color));
-        if (lastMin != null && lastMax != null) {
-            ThresholdNotifier.notifyIfNeeded(this, temperature, lastMin, lastMax);
+    }
+
+    private void applyHumidityThreshold(double humidity, Reading temperature) {
+        ThresholdChecker.Status humidityStatus = ThresholdChecker.check(humidity, lastHumidityMin, lastHumidityMax);
+        if (!ThresholdChecker.isAlarm(humidityStatus)) {
+            return;
         }
+        ThresholdChecker.Status temperatureStatus = temperature == null
+                ? ThresholdChecker.Status.UNKNOWN
+                : ThresholdChecker.check(temperature.value, lastMin, lastMax);
+        if (ThresholdChecker.isAlarm(temperatureStatus)) {
+            return;
+        }
+        String text = humidityStatus == ThresholdChecker.Status.ABOVE
+                ? getString(R.string.status_humidity_above, lastHumidityMax)
+                : getString(R.string.status_humidity_below, lastHumidityMin);
+        tvStatus.setText(text);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.alert_text));
     }
 
     private void showEmpty() {

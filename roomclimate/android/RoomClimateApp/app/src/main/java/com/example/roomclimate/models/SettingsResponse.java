@@ -9,5 +9,17 @@ public class SettingsResponse {
     public double tempMin;
     @SerializedName("temp_max")
     public double tempMax;
+    @SerializedName("humidity_min")
+    public Double humidityMin;
+    @SerializedName("humidity_max")
+    public Double humidityMax;
     public boolean saved;
+
+    public double humidityMinOrDefault() {
+        return humidityMin == null ? 30.0 : humidityMin;
+    }
+
+    public double humidityMaxOrDefault() {
+        return humidityMax == null ? 70.0 : humidityMax;
+    }
 }

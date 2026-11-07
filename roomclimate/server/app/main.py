@@ -230,11 +230,20 @@ def get_settings(device_id: str = Query(default="pi-1")):
     finally:
         conn.close()
     if row is None:
-        return {"device_id": device_id, "temp_min": 18.0, "temp_max": 26.0, "saved": False}
+        return {
+            "device_id": device_id,
+            "temp_min": 18.0,
+            "temp_max": 26.0,
+            "humidity_min": 30.0,
+            "humidity_max": 70.0,
+            "saved": False,
+        }
     return {
         "device_id": row["device_id"],
         "temp_min": row["temp_min"],
         "temp_max": row["temp_max"],
+        "humidity_min": row["humidity_min"] if row["humidity_min"] is not None else 30.0,
+        "humidity_max": row["humidity_max"] if row["humidity_max"] is not None else 70.0,
         "saved": True,
     }
 
@@ -243,9 +252,18 @@ def get_settings(device_id: str = Query(default="pi-1")):
 def put_settings(body: SettingsIn, device_id: str = Query(default="pi-1")):
     if body.temp_min >= body.temp_max:
         raise HTTPException(status_code=400, detail="temp_min должен быть меньше temp_max")
+    if body.humidity_min >= body.humidity_max:
+        raise HTTPException(status_code=400, detail="humidity_min должен быть меньше humidity_max")
     conn = db.connect()
     try:
-        db.put_settings(conn, device_id, body.temp_min, body.temp_max)
+        db.put_settings(
+            conn,
+            device_id,
+            body.temp_min,
+            body.temp_max,
+            body.humidity_min,
+            body.humidity_max,
+        )
         conn.commit()
     finally:
         conn.close()
@@ -253,6 +271,8 @@ def put_settings(body: SettingsIn, device_id: str = Query(default="pi-1")):
         "device_id": device_id,
         "temp_min": body.temp_min,
         "temp_max": body.temp_max,
+        "humidity_min": body.humidity_min,
+        "humidity_max": body.humidity_max,
         "saved": True,
     }
 

@@ -7,11 +7,17 @@ public class SettingsRequest {
     public double tempMin;
     @SerializedName("temp_max")
     public double tempMax;
+    @SerializedName("humidity_min")
+    public double humidityMin;
+    @SerializedName("humidity_max")
+    public double humidityMax;
 
     public SettingsRequest() {}
 
-    public SettingsRequest(double tempMin, double tempMax) {
+    public SettingsRequest(double tempMin, double tempMax, double humidityMin, double humidityMax) {
         this.tempMin = tempMin;
         this.tempMax = tempMax;
+        this.humidityMin = humidityMin;
+        this.humidityMax = humidityMax;
     }
 }

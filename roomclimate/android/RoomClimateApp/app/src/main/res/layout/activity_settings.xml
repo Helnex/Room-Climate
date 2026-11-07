@@ -155,6 +155,34 @@
                     android:textColorHint="@color/gray_text_light"
                     android:textSize="14sp" />
 
+                <EditText
+                    android:id="@+id/editHumidityMin"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:hint="@string/hint_humidity_min"
+                    android:inputType="numberDecimal"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:textColor="@color/dark_text"
+                    android:textColorHint="@color/gray_text_light"
+                    android:textSize="14sp" />
+
+                <EditText
+                    android:id="@+id/editHumidityMax"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_input_field"
+                    android:hint="@string/hint_humidity_max"
+                    android:inputType="numberDecimal"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:textColor="@color/dark_text"
+                    android:textColorHint="@color/gray_text_light"
+                    android:textSize="14sp" />
+
                 <Button
                     android:id="@+id/btnSaveThresholds"
                     android:layout_width="match_parent"

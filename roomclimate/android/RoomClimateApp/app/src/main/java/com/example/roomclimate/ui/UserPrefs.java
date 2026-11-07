@@ -12,6 +12,7 @@ public final class UserPrefs {
     private static final String KEY_SURNAME = "surname";
     private static final String KEY_EMAIL = "email";
     private static final String KEY_TOKEN = "token";
+    private static final String KEY_ALERTS = "alerts_enabled";
 
     private UserPrefs() {}
 
@@ -48,6 +49,14 @@ public final class UserPrefs {
 
     public static String getToken(Context context) {
         return prefs(context).getString(KEY_TOKEN, "");
+    }
+
+    public static boolean alertsEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_ALERTS, true);
+    }
+
+    public static void setAlertsEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_ALERTS, enabled).apply();
     }
 
     public static void clear(Context context) {

@@ -16,6 +16,7 @@ import com.example.roomclimate.models.AuthResponse;
 import com.example.roomclimate.network.ApiClient;
 import com.example.roomclimate.network.ApiErrors;
 import com.example.roomclimate.network.AppPermissions;
+import com.example.roomclimate.network.ServerDiscovery;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -61,6 +62,17 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         setLoading(true);
+        ServerDiscovery.ensure(this, url -> {
+            if (url == null) {
+                setLoading(false);
+                Toast.makeText(this, R.string.server_not_found, Toast.LENGTH_LONG).show();
+                return;
+            }
+            sendRegister(name, surname, email, password);
+        });
+    }
+
+    private void sendRegister(String name, String surname, String email, String password) {
         ApiClient.get(this)
                 .register(AuthRequest.register(name, surname, email, password))
                 .enqueue(new Callback<AuthResponse>() {

@@ -2,6 +2,8 @@ package com.example.roomclimate.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.CompoundButton;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -10,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.roomclimate.R;
 import com.example.roomclimate.network.ApiClient;
+import com.example.roomclimate.notify.ClimateMonitorService;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -49,6 +52,16 @@ public class AccountActivity extends AppCompatActivity {
         tvAvatar.setText(initials);
 
         tvLogout.setOnClickListener(v -> logout());
+        Switch switchAlerts = findViewById(R.id.switchClimateAlerts);
+        switchAlerts.setChecked(UserPrefs.alertsEnabled(this));
+        switchAlerts.setOnCheckedChangeListener((CompoundButton button, boolean checked) -> {
+            UserPrefs.setAlertsEnabled(AccountActivity.this, checked);
+            if (checked) {
+                ClimateMonitorService.start(AccountActivity.this);
+            } else {
+                ClimateMonitorService.stop(AccountActivity.this);
+            }
+        });
         BottomNav.bind(this, R.id.navAccount);
     }
 
@@ -73,6 +86,7 @@ public class AccountActivity extends AppCompatActivity {
     }
 
     private void clearAndGoLogin() {
+        ClimateMonitorService.stop(this);
         UserPrefs.clear(this);
         goLogin();
     }

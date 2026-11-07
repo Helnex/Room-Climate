@@ -52,6 +52,8 @@ def init_db() -> None:
                 device_id TEXT PRIMARY KEY,
                 temp_min REAL NOT NULL,
                 temp_max REAL NOT NULL,
+                humidity_min REAL NOT NULL DEFAULT 30,
+                humidity_max REAL NOT NULL DEFAULT 70,
                 FOREIGN KEY(device_id) REFERENCES devices(id)
             );
             CREATE TABLE IF NOT EXISTS users (
@@ -72,9 +74,17 @@ def init_db() -> None:
                 ON sessions(user_id);
             """
         )
+        _ensure_column(conn, "settings", "humidity_min", "REAL NOT NULL DEFAULT 30")
+        _ensure_column(conn, "settings", "humidity_max", "REAL NOT NULL DEFAULT 70")
         conn.commit()
     finally:
         conn.close()
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, name: str, declaration: str) -> None:
+    columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if name not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {declaration}")
 
 
 def create_user(
@@ -217,20 +227,35 @@ def history(
 
 def get_settings(conn: sqlite3.Connection, device_id: str) -> sqlite3.Row | None:
     return conn.execute(
-        "SELECT device_id, temp_min, temp_max FROM settings WHERE device_id = ?",
+        """
+        SELECT device_id, temp_min, temp_max, humidity_min, humidity_max
+        FROM settings WHERE device_id = ?
+        """,
         (device_id,),
     ).fetchone()
 
 
-def put_settings(conn: sqlite3.Connection, device_id: str, temp_min: float, temp_max: float) -> None:
+def put_settings(
+    conn: sqlite3.Connection,
+    device_id: str,
+    temp_min: float,
+    temp_max: float,
+    humidity_min: float,
+    humidity_max: float,
+) -> None:
     conn.execute(
         "INSERT OR IGNORE INTO devices(id, name, created_at) VALUES (?, ?, ?)",
         (device_id, device_id, utc_now()),
     )
     conn.execute(
         """
-        INSERT INTO settings(device_id, temp_min, temp_max) VALUES (?, ?, ?)
-        ON CONFLICT(device_id) DO UPDATE SET temp_min = excluded.temp_min, temp_max = excluded.temp_max
+        INSERT INTO settings(device_id, temp_min, temp_max, humidity_min, humidity_max)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(device_id) DO UPDATE SET
+            temp_min = excluded.temp_min,
+            temp_max = excluded.temp_max,
+            humidity_min = excluded.humidity_min,
+            humidity_max = excluded.humidity_max
         """,
-        (device_id, temp_min, temp_max),
+        (device_id, temp_min, temp_max, humidity_min, humidity_max),
     )
