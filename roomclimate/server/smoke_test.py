@@ -95,7 +95,11 @@ def main() -> None:
     code, got = req("GET", "/settings?device_id=pi-1")
     check(
         "GET /settings",
-        code == 200 and got.get("temp_min") == 18 and got.get("temp_max") == 26,
+        code == 200
+        and got.get("temp_min") == 18
+        and got.get("temp_max") == 26
+        and got.get("humidity_min") == 30
+        and got.get("humidity_max") == 70,
         str(got),
     )
 

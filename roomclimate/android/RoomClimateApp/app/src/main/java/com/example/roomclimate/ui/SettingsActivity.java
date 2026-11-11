@@ -27,6 +27,8 @@ public class SettingsActivity extends AppCompatActivity {
     private EditText editDeviceId;
     private EditText editTempMin;
     private EditText editTempMax;
+    private EditText editHumidityMin;
+    private EditText editHumidityMax;
     private TextView tvHealth;
 
     @Override
@@ -38,6 +40,8 @@ public class SettingsActivity extends AppCompatActivity {
         editDeviceId = findViewById(R.id.editDeviceId);
         editTempMin = findViewById(R.id.editTempMin);
         editTempMax = findViewById(R.id.editTempMax);
+        editHumidityMin = findViewById(R.id.editHumidityMin);
+        editHumidityMax = findViewById(R.id.editHumidityMax);
         tvHealth = findViewById(R.id.tvHealth);
         Button btnSaveConnection = findViewById(R.id.btnSaveConnection);
         Button btnTestConnection = findViewById(R.id.btnTestConnection);
@@ -111,6 +115,8 @@ public class SettingsActivity extends AppCompatActivity {
                         if (response.isSuccessful() && response.body() != null) {
                             editTempMin.setText(String.valueOf(response.body().tempMin));
                             editTempMax.setText(String.valueOf(response.body().tempMax));
+                            editHumidityMin.setText(String.valueOf(response.body().humidityMinOrDefault()));
+                            editHumidityMax.setText(String.valueOf(response.body().humidityMaxOrDefault()));
                         }
                     }
 
@@ -125,19 +131,26 @@ public class SettingsActivity extends AppCompatActivity {
         saveConnectionSilently();
         double min;
         double max;
+        double humidityMin;
+        double humidityMax;
         try {
             min = Double.parseDouble(editTempMin.getText().toString().trim().replace(',', '.'));
             max = Double.parseDouble(editTempMax.getText().toString().trim().replace(',', '.'));
+            humidityMin = Double.parseDouble(editHumidityMin.getText().toString().trim().replace(',', '.'));
+            humidityMax = Double.parseDouble(editHumidityMax.getText().toString().trim().replace(',', '.'));
         } catch (NumberFormatException e) {
             Toast.makeText(this, R.string.settings_bad_numbers, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (min >= max) {
+        if (min >= max || humidityMin >= humidityMax) {
             Toast.makeText(this, R.string.settings_min_max, Toast.LENGTH_SHORT).show();
             return;
         }
         ApiClient.get(this)
-                .putSettings(ServerConfig.getDeviceId(this), new SettingsRequest(min, max))
+                .putSettings(
+                        ServerConfig.getDeviceId(this),
+                        new SettingsRequest(min, max, humidityMin, humidityMax)
+                )
                 .enqueue(new Callback<SettingsResponse>() {
                     @Override
                     public void onResponse(@NonNull Call<SettingsResponse> call,
