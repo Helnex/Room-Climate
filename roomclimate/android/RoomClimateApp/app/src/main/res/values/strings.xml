@@ -92,7 +92,9 @@
     <string name="hint_base_url">http://10.0.2.2:8000</string>
     <string name="server_searching">Подключение к серверу…</string>
     <string name="server_ready">Сервер найден</string>
-    <string name="server_not_found">Сервер не найден. Компьютер с Docker должен быть включён и в той же Wi‑Fi</string>
+    <string name="server_not_found">Сервер не найден. Компьютер с Docker должен быть в той же Wi‑Fi или подключён к раздаче с этого телефона, порт 8000 открыт в брандмауэре</string>
+    <string name="server_not_found_vpn">Сервер не найден: на телефоне включён VPN. Добавьте RoomClimate в исключения VPN (или включите «обход локальной сети»), либо подключите телефон по USB</string>
+    <string name="server_not_found_no_lan">Сервер не найден: телефон не в Wi‑Fi и не раздаёт интернет. Подключитесь к Wi‑Fi компьютера, включите точку доступа или подключите телефон по USB</string>
     <string name="hint_device_id">pi-1</string>
     <string name="hint_temp_min">Минимум, °C</string>
     <string name="hint_temp_max">Максимум, °C</string>

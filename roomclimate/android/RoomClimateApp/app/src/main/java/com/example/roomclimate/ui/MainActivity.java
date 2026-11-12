@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         ServerDiscovery.ensure(this, url -> {
             if (url == null) {
                 serverReady = false;
-                tvServerStatus.setText(R.string.server_not_found);
+                tvServerStatus.setText(ServerDiscovery.lastFailureMessage());
                 tvServerStatus.setTextColor(ContextCompat.getColor(this, R.color.alert_text));
                 if (loginQueued) {
                     loginQueued = false;

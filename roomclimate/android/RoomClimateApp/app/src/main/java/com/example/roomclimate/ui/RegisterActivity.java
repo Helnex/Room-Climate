@@ -73,7 +73,7 @@ public class RegisterActivity extends AppCompatActivity {
         ServerDiscovery.ensure(this, url -> {
             if (url == null) {
                 setLoading(false);
-                Toast.makeText(this, R.string.server_not_found, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, ServerDiscovery.lastFailureMessage(), Toast.LENGTH_LONG).show();
                 return;
             }
             sendRegister(name, surname, email, password);
