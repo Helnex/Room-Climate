@@ -140,6 +140,7 @@ public class ClimateMonitorService extends Service {
                 if (response.isSuccessful() && response.body() != null) {
                     check(response.body(), settings);
                 }
+                SensorWatch.check(ClimateMonitorService.this);
                 finishPoll();
             }
 

@@ -79,6 +79,33 @@ public final class ServerDiscovery {
         }, "server-discovery").start();
     }
 
+    /**
+     * Проверить конкретный адрес (из QR-кода страницы /connect) и, если сервер отвечает,
+     * сохранить его. Callback получает адрес или null.
+     */
+    public static void useUrl(Context context, String rawUrl, Callback callback) {
+        Context app = context.getApplicationContext();
+        String url = ServerConfig.normalizeBaseUrl(rawUrl);
+        new Thread(() -> {
+            String ok = null;
+            String host = LocalNet.hostOf(url);
+            // Только локальные адреса: ссылку roomclimate:// может открыть любой сайт, и без этой
+            // проверки он подменил бы сервер — пароль при входе ушёл бы чужому серверу.
+            boolean local = LocalNet.isPrivate(host) || host.startsWith("127.")
+                    || host.toLowerCase(java.util.Locale.ROOT).endsWith(".local");
+            if (local && (url.startsWith("http://") || url.startsWith("https://"))) {
+                List<LocalLinks.Link> links = LocalLinks.collect(app);
+                if (health(links, LocalLinks.vpnActive(app), url, 3000)) {
+                    ok = remember(app, url);
+                    synchronized (LOCK) {
+                        cachedUrl = ok;
+                    }
+                }
+            }
+            deliver(callback, ok);
+        }, "server-connect").start();
+    }
+
     /** Сбросить найденный адрес (например, сменилась сеть) и искать заново. */
     public static void forget() {
         synchronized (LOCK) {

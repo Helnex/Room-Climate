@@ -51,4 +51,21 @@ public interface ApiService {
             @Query("device_id") String deviceId,
             @Body SettingsRequest body
     );
+
+    // ---- Устройства, аналитика, экспорт (экран «Устройства») ----
+
+    @GET("devices")
+    Call<com.example.roomclimate.models.DevicesResponse> getDevices();
+
+    @GET("telemetry/insights")
+    Call<com.example.roomclimate.models.InsightsResponse> getInsights(
+            @Query("device_id") String deviceId,
+            @Query("hours") int hours
+    );
+
+    @GET("telemetry/export.csv")
+    Call<okhttp3.ResponseBody> exportCsv(
+            @Query("device_id") String deviceId,
+            @Query("hours") int hours
+    );
 }

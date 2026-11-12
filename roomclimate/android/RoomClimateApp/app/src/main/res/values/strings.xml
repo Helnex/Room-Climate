@@ -84,6 +84,7 @@
     <string name="connection_no_data">Сервер доступен, но данных нет · %1$s</string>
     <string name="local_network_needed">Разрешите доступ к локальной сети, иначе телефон не увидит сервер в Wi‑Fi</string>
     <string name="connection_http_error">Ошибка сервера: %1$d</string>
+    <string name="connection_failed">Нет связи: %1$s</string>
     <string name="history_loading">Загружаю историю…</string>
     <string name="history_row">%1$s · %2$s: %3$s %4$s</string>
     <string name="history_count">Записей: %1$d · устройство %2$s</string>
@@ -120,4 +121,41 @@
     <string name="monitor_channel_desc">Фоновая проверка порогов</string>
     <string name="monitor_title">Следим за климатом</string>
     <string name="monitor_text">Уведомим, если температура или влажность выйдут за порог</string>
+
+    <!-- Экран «Устройства», аналитика, экспорт, подключение по QR (Крючков К.) -->
+    <string name="devices_title">Устройства</string>
+    <string name="devices_count">Плат: %1$d. Нажмите на плату, чтобы сделать её основной</string>
+    <string name="devices_empty">Плата ещё не присылала показания</string>
+    <string name="devices_load_failed">Не удалось загрузить данные</string>
+    <string name="device_row">%1$s%2$s — %3$s</string>
+    <string name="device_online">на связи, обновлено %1$s</string>
+    <string name="device_offline">молчит, последние данные %1$s</string>
+    <string name="device_selected">Основная плата: %1$s</string>
+    <string name="ago_now">только что</string>
+    <string name="ago_minutes">%1$d мин назад</string>
+    <string name="ago_hours">%1$d ч назад</string>
+    <string name="ago_days">%1$d дн назад</string>
+    <string name="ago_never">никогда</string>
+    <string name="duration_minutes">%1$d мин</string>
+    <string name="duration_hours">%1$d ч</string>
+    <string name="insights_title">Климат сейчас</string>
+    <string name="insight_dew_point">Точка росы: %1$s °C</string>
+    <string name="insight_mold">Риск плесени: %1$s</string>
+    <string name="period_day">Сутки</string>
+    <string name="period_week">Неделя</string>
+    <string name="stats_title_day">За сутки (мин / сред / макс):</string>
+    <string name="stats_title_week">За неделю (мин / сред / макс):</string>
+    <string name="stats_row">%1$s: %2$s / %3$s / %4$s %5$s</string>
+    <string name="stats_empty">Нет показаний за период</string>
+    <string name="btn_export_csv">Экспорт в CSV (Excel)</string>
+    <string name="export_failed">Не удалось выгрузить показания</string>
+    <string name="export_subject">Показания RoomClimate</string>
+    <string name="devices_connect_hint">Подключить другой телефон: на компьютере откройте http://IP_компьютера:8000/connect и отсканируйте QR-код</string>
+    <string name="connect_bad_link">Ссылка подключения без адреса сервера</string>
+    <string name="connect_checking">Проверяю сервер %1$s…</string>
+    <string name="connect_saved">Сервер подключён: %1$s</string>
+    <string name="connect_failed">Сервер %1$s не отвечает. Проверьте Wi‑Fi и брандмауэр</string>
+    <string name="sensor_silent_title">Датчик молчит</string>
+    <string name="sensor_silent_text">Плата %1$s не присылает показания %2$s. Проверьте питание и Wi‑Fi платы</string>
+    <string name="sensor_back_text">Плата %1$s снова на связи</string>
 </resources>

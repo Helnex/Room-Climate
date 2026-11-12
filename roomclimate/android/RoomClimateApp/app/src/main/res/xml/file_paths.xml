@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Только папка выгрузок CSV, остальной кэш наружу не отдаётся -->
+    <cache-path name="exports" path="exports/" />
+</paths>

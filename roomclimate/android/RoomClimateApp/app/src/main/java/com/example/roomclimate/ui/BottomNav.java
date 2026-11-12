@@ -23,12 +23,7 @@ public final class BottomNav {
         bindTab(activity, R.id.navHistory, HistoryActivity.class, selectedId);
         bindTab(activity, R.id.navSettings, SettingsActivity.class, selectedId);
         bindTab(activity, R.id.navAccount, AccountActivity.class, selectedId);
-
-        View devices = activity.findViewById(R.id.navDevices);
-        if (devices != null) {
-            devices.setOnClickListener(v ->
-                    Toast.makeText(activity, R.string.devices_soon, Toast.LENGTH_SHORT).show());
-        }
+        bindTab(activity, R.id.navDevices, DevicesActivity.class, selectedId);
         highlight(activity, selectedId);
     }
 

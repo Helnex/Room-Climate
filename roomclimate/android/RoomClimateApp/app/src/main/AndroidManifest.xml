@@ -35,6 +35,29 @@
         <activity android:name=".ui.DashboardActivity" android:exported="false" />
         <activity android:name=".ui.HistoryActivity" android:exported="false" />
         <activity android:name=".ui.SettingsActivity" android:exported="false" />
+        <activity android:name=".ui.DevicesActivity" android:exported="false" />
+        <!-- Ссылка со страницы сервера /connect (QR-код): roomclimate://connect?url=http://IP:8000 -->
+        <activity
+            android:name=".ui.ConnectActivity"
+            android:exported="true"
+            android:theme="@style/Theme.RoomClimate">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="roomclimate" android:host="connect" />
+            </intent-filter>
+        </activity>
+        <!-- Экспорт CSV: отдаём файл из кэша другим приложениям через «Поделиться» -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
         <service
             android:name=".notify.ClimateMonitorService"
             android:exported="false"

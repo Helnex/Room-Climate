@@ -21,6 +21,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Unit tests (insights)
+        run: python3 test_insights.py
+
       - name: Build and start stack
         run: docker compose up --build -d
 

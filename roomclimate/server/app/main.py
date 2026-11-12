@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import auth, db
+from app import auth, db, extras
 from app.config import settings
 from app.db import utc_now
 from app.errors import translate_http_detail, validation_message
@@ -382,6 +382,10 @@ def put_settings(body: SettingsIn, device_id: str = Query(default="pi-1", min_le
         "humidity_max": body.humidity_max,
         "saved": True,
     }
+
+
+# Аналитика, устройства, экспорт CSV, страница подключения — app/extras.py
+app.include_router(extras.build_router(current_user))
 
 
 @app.get("/")

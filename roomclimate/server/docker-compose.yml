@@ -21,8 +21,16 @@ services:
       # в Wi-Fi не смогут присылать поддельные показания.
       INGEST_TOKEN: ${INGEST_TOKEN:-}
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+      # Через сколько секунд без показаний датчик считается «молчащим» (/devices, /telemetry/insights).
+      STALE_AFTER_SECONDS: ${STALE_AFTER_SECONDS:-180}
     volumes:
       - sqlite_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if b'\"ok\"' in urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read() else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
     depends_on:
       redis:
         condition: service_healthy
