@@ -9,6 +9,7 @@ GET  {base}/auth/me
      Authorization: Bearer <token>
 POST {base}/auth/logout
      Authorization: Bearer <token>
+Запросы ниже требуют Authorization: Bearer <token>:
 GET  {base}/telemetry/current?device_id=pi-1
 GET  {base}/telemetry/history?device_id=pi-1
 GET  {base}/settings?device_id=pi-1
@@ -16,3 +17,6 @@ PUT  {base}/settings?device_id=pi-1
      {"temp_min": 18, "temp_max": 26}
 
 POST {base}/telemetry   — только сборщик на Pi, Android этот метод не вызывает.
+     X-Device-Token: <INGEST_TOKEN>   (если задан на сервере)
+
+Ошибки: {"detail": "текст на русском"}.

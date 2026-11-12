@@ -15,6 +15,7 @@ import com.example.roomclimate.models.HealthResponse;
 import com.example.roomclimate.models.SettingsRequest;
 import com.example.roomclimate.models.SettingsResponse;
 import com.example.roomclimate.network.ApiClient;
+import com.example.roomclimate.network.ApiErrors;
 import com.example.roomclimate.network.AppPermissions;
 import com.example.roomclimate.network.ServerConfig;
 
@@ -34,6 +35,9 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (SessionGuard.requireLogin(this)) {
+            return;
+        }
         setContentView(R.layout.activity_settings);
 
         editBaseUrl = findViewById(R.id.editBaseUrl);
@@ -92,7 +96,7 @@ public class SettingsActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<HealthResponse> call, @NonNull Throwable t) {
-                tvHealth.setText(getString(R.string.connection_failed, t.getMessage()));
+                tvHealth.setText(ApiErrors.network(t));
                 tvHealth.setTextColor(ContextCompat.getColor(SettingsActivity.this, R.color.alert_text));
             }
         });
@@ -112,6 +116,9 @@ public class SettingsActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(@NonNull Call<SettingsResponse> call,
                                            @NonNull Response<SettingsResponse> response) {
+                        if (SessionGuard.handleUnauthorized(SettingsActivity.this, response)) {
+                            return;
+                        }
                         if (response.isSuccessful() && response.body() != null) {
                             editTempMin.setText(String.valueOf(response.body().tempMin));
                             editTempMax.setText(String.valueOf(response.body().tempMax));
@@ -122,7 +129,7 @@ public class SettingsActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(@NonNull Call<SettingsResponse> call, @NonNull Throwable t) {
-                        Toast.makeText(SettingsActivity.this, t.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(SettingsActivity.this, ApiErrors.network(t), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -155,20 +162,23 @@ public class SettingsActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(@NonNull Call<SettingsResponse> call,
                                            @NonNull Response<SettingsResponse> response) {
+                        if (SessionGuard.handleUnauthorized(SettingsActivity.this, response)) {
+                            return;
+                        }
                         if (response.isSuccessful() && response.body() != null && response.body().saved) {
                             Toast.makeText(SettingsActivity.this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
                         } else {
                             Toast.makeText(
                                     SettingsActivity.this,
-                                    getString(R.string.connection_http_error, response.code()),
-                                    Toast.LENGTH_SHORT
+                                    ApiErrors.message(response, getString(R.string.settings_save_failed)),
+                                    Toast.LENGTH_LONG
                             ).show();
                         }
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<SettingsResponse> call, @NonNull Throwable t) {
-                        Toast.makeText(SettingsActivity.this, t.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(SettingsActivity.this, ApiErrors.network(t), Toast.LENGTH_SHORT).show();
                     }
                 });
     }

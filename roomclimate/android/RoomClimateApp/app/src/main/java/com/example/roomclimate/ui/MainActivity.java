@@ -89,16 +89,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void attemptLogin() {
+        String email = editEmail.getText().toString().trim();
+        // Пароль не обрезаем: пробелы — допустимые символы пароля.
+        String password = editPassword.getText().toString();
+        // Проверяем поля до поиска сервера: раньше при пустых полях кнопка навсегда
+        // оставалась в состоянии «Подождите…».
+        if (email.isEmpty() || password.isEmpty()) {
+            setLoading(false);
+            Toast.makeText(this, R.string.auth_fill_login, Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (!serverReady) {
             loginQueued = true;
             setLoading(true);
             discoverServer();
-            return;
-        }
-        String email = editEmail.getText().toString().trim();
-        String password = editPassword.getText().toString().trim();
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, R.string.auth_fill_login, Toast.LENGTH_SHORT).show();
             return;
         }
 

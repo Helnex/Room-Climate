@@ -39,17 +39,10 @@ public class AccountActivity extends AppCompatActivity {
         String surname = UserPrefs.getSurname(this);
         String email = UserPrefs.getEmail(this);
 
-        tvFullName.setText((name + " " + surname).trim());
+        tvFullName.setText(getString(R.string.full_name, name, surname).trim());
         tvEmail.setText(email);
 
-        String initials = "";
-        if (!name.isEmpty()) {
-            initials += name.substring(0, 1).toUpperCase();
-        }
-        if (!surname.isEmpty()) {
-            initials += surname.substring(0, 1).toUpperCase();
-        }
-        tvAvatar.setText(initials);
+        tvAvatar.setText(Formatters.initials(name, surname));
 
         tvLogout.setOnClickListener(v -> logout());
         Switch switchAlerts = findViewById(R.id.switchClimateAlerts);

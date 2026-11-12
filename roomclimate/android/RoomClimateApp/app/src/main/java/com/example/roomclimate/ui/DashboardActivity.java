@@ -1,6 +1,5 @@
 package com.example.roomclimate.ui;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -15,6 +14,7 @@ import com.example.roomclimate.models.CurrentTelemetryResponse;
 import com.example.roomclimate.models.Reading;
 import com.example.roomclimate.models.SettingsResponse;
 import com.example.roomclimate.network.ApiClient;
+import com.example.roomclimate.network.ApiErrors;
 import com.example.roomclimate.network.AppPermissions;
 import com.example.roomclimate.network.ServerConfig;
 import com.example.roomclimate.notify.ClimateMonitorService;
@@ -45,9 +45,7 @@ public class DashboardActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (!UserPrefs.isLoggedIn(this)) {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+        if (SessionGuard.requireLogin(this)) {
             return;
         }
         setContentView(R.layout.activity_dashboard);
@@ -103,6 +101,9 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call<SettingsResponse> call,
                                    @NonNull Response<SettingsResponse> response) {
+                if (SessionGuard.handleUnauthorized(DashboardActivity.this, response)) {
+                    return;
+                }
                 if (response.isSuccessful() && response.body() != null) {
                     lastMin = response.body().tempMin;
                     lastMax = response.body().tempMax;
@@ -131,6 +132,9 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call<CurrentTelemetryResponse> call,
                                    @NonNull Response<CurrentTelemetryResponse> response) {
+                if (SessionGuard.handleUnauthorized(DashboardActivity.this, response)) {
+                    return;
+                }
                 if (response.code() == 404) {
                     showEmpty();
                     return;
@@ -144,7 +148,7 @@ public class DashboardActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<CurrentTelemetryResponse> call, @NonNull Throwable t) {
-                showError(getString(R.string.connection_failed, t.getMessage()));
+                showError(ApiErrors.network(t));
             }
         });
     }
@@ -154,8 +158,8 @@ public class DashboardActivity extends AppCompatActivity {
         Reading humidity = body.reading("humidity");
 
         if (temperature != null) {
-            tvTemperature.setText(getString(R.string.value_with_unit, temperature.value, temperature.unit));
-            tvUpdated.setText(getString(R.string.updated_at, temperature.measuredAt));
+            tvTemperature.setText(getString(R.string.value_with_unit, temperature.value, Formatters.unit(temperature.unit)));
+            tvUpdated.setText(getString(R.string.updated_at, Formatters.time(temperature.measuredAt)));
             applyThreshold(temperature.value);
         } else {
             tvTemperature.setText(R.string.value_placeholder);
@@ -164,7 +168,7 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         if (humidity != null) {
-            tvHumidity.setText(getString(R.string.value_with_unit, humidity.value, humidity.unit));
+            tvHumidity.setText(getString(R.string.value_with_unit, humidity.value, Formatters.unit(humidity.unit)));
             applyHumidityThreshold(humidity.value, temperature);
         } else {
             tvHumidity.setText(R.string.value_placeholder);

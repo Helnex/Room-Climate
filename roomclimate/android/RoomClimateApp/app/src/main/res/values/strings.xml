@@ -14,6 +14,9 @@
     <string name="auth_login_failed">Не удалось войти</string>
     <string name="auth_register_failed">Не удалось создать аккаунт</string>
     <string name="auth_logout_local">Сессия очищена на телефоне</string>
+    <string name="auth_session_expired">Сессия истекла, войдите заново</string>
+    <string name="auth_bad_email">Введите корректный email, например ivan@mail.ru</string>
+    <string name="auth_password_blank">Пароль не может состоять из одних пробелов</string>
     <string name="or_text">или</string>
     <string name="btn_register">Зарегистрироваться</string>
     <string name="terms_text">Нажимая кнопку, вы соглашаетесь с Условиями\nиспользования и Политикой\nконфиденциальности</string>
@@ -30,6 +33,7 @@
     <string name="header_title">Устройства</string>
     <!-- Экран Аккаунт -->
     <string name="account_title">Аккаунт</string>
+    <string name="full_name">%1$s %2$s</string>
     <string name="edit_profile">Редактировать профиль</string>
     <string name="my_home">Мой дом</string>
     <string name="my_home_desc">0 комнат · 0 базовых датчиков · 1 участник</string>
@@ -78,10 +82,10 @@
     <string name="connection_checking_short">Проверяю сервер…</string>
     <string name="connection_ok">Сервер отвечает (%1$s) · %2$s</string>
     <string name="connection_no_data">Сервер доступен, но данных нет · %1$s</string>
-    <string name="connection_failed">Нет связи: %1$s</string>
     <string name="local_network_needed">Разрешите доступ к локальной сети, иначе телефон не увидит сервер в Wi‑Fi</string>
     <string name="connection_http_error">Ошибка сервера: %1$d</string>
     <string name="history_loading">Загружаю историю…</string>
+    <string name="history_row">%1$s · %2$s: %3$s %4$s</string>
     <string name="history_count">Записей: %1$d · устройство %2$s</string>
     <string name="settings_server">Подключение к серверу</string>
     <string name="settings_thresholds">Пороги температуры и влажности</string>
@@ -102,6 +106,7 @@
     <string name="settings_bad_numbers">Введите числа для порогов</string>
     <string name="settings_min_max">Минимум должен быть меньше максимума</string>
     <string name="settings_saved">Пороги сохранены на сервере</string>
+    <string name="settings_save_failed">Не удалось сохранить пороги</string>
     <string name="health_ok">Сервер доступен · %1$s</string>
     <string name="health_bad">Сервер ответил с ошибкой: %1$d</string>
     <string name="notification_channel_name">Климат</string>

@@ -112,6 +112,11 @@ public class ClimateMonitorService extends Service {
             @Override
             public void onResponse(@NonNull Call<SettingsResponse> call,
                                    @NonNull Response<SettingsResponse> response) {
+                if (response.code() == 401) {
+                    // Сессия истекла: ApiClient уже сбросил токен, фоновую проверку прекращаем.
+                    stopSelf();
+                    return;
+                }
                 SettingsResponse settings = response.isSuccessful() ? response.body() : null;
                 if (settings == null) {
                     finishPoll();
@@ -155,7 +160,7 @@ public class ClimateMonitorService extends Service {
                     temperature.value,
                     settings.tempMin,
                     settings.tempMax,
-                    temperature.unit == null ? "C" : temperature.unit
+                    temperature.unit == null ? "°C" : temperature.unit
             );
         }
         Reading humidity = body.reading("humidity");

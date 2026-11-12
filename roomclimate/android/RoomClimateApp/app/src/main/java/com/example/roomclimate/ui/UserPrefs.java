@@ -63,6 +63,17 @@ public final class UserPrefs {
         prefs(context).edit().clear().apply();
     }
 
+    /** Сбрасывает только данные сессии (токен и профиль), настройки уведомлений остаются. */
+    public static void clearSession(Context context) {
+        prefs(context).edit()
+                .remove(KEY_ID)
+                .remove(KEY_NAME)
+                .remove(KEY_SURNAME)
+                .remove(KEY_EMAIL)
+                .remove(KEY_TOKEN)
+                .commit();
+    }
+
     private static SharedPreferences prefs(Context context) {
         return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }

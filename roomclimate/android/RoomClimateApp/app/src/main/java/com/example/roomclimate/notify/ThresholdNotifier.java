@@ -13,8 +13,7 @@ import androidx.core.app.NotificationManagerCompat;
 import com.example.roomclimate.R;
 import com.example.roomclimate.network.ServerConfig;
 import com.example.roomclimate.ui.DashboardActivity;
-
-import java.util.Locale;
+import com.example.roomclimate.ui.Formatters;
 
 public final class ThresholdNotifier {
     public static final String CHANNEL_ID = "climate_alerts";
@@ -66,7 +65,7 @@ public final class ThresholdNotifier {
         }
 
         ensureChannels(context);
-        String shownUnit = unit == null ? "" : unit;
+        String shownUnit = Formatters.unit(unit);
         String body = status == ThresholdChecker.Status.ABOVE
                 ? context.getString(
                 R.string.notification_above,
@@ -114,6 +113,6 @@ public final class ThresholdNotifier {
     }
 
     private static String format(double value) {
-        return String.format(Locale.US, "%.1f", value);
+        return Formatters.number(value);
     }
 }

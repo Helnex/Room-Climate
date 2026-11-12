@@ -50,13 +50,21 @@ public class RegisterActivity extends AppCompatActivity {
         String name = editName.getText().toString().trim();
         String surname = editSurname.getText().toString().trim();
         String email = editEmailReg.getText().toString().trim();
-        String password = editPasswordReg.getText().toString().trim();
+        String password = editPasswordReg.getText().toString();
 
         if (name.isEmpty() || surname.isEmpty() || email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, R.string.auth_fill_register, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (password.length() < 6) {
+        if (!AuthValidation.isEmail(email)) {
+            Toast.makeText(this, R.string.auth_bad_email, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (password.trim().isEmpty()) {
+            Toast.makeText(this, R.string.auth_password_blank, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (password.codePointCount(0, password.length()) < 6) {
             Toast.makeText(this, R.string.auth_password_short, Toast.LENGTH_SHORT).show();
             return;
         }

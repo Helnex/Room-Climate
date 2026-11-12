@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app.config import settings
@@ -126,27 +126,39 @@ def get_user_by_id(conn: sqlite3.Connection, user_id: int) -> sqlite3.Row | None
     ).fetchone()
 
 
-def create_session(conn: sqlite3.Connection, user_id: int, token: str) -> None:
+# В колонке sessions.token хранится SHA-256 токена (см. auth.hash_token), а не сам токен.
+# Старые сессии с открытыми токенами просто перестанут совпадать — пользователю нужно войти заново.
+
+
+def create_session(conn: sqlite3.Connection, user_id: int, token_hash: str) -> None:
     conn.execute(
         "INSERT INTO sessions(token, user_id, created_at) VALUES (?, ?, ?)",
-        (token, user_id, utc_now()),
+        (token_hash, user_id, utc_now()),
     )
 
 
-def get_user_by_token(conn: sqlite3.Connection, token: str) -> sqlite3.Row | None:
+def _session_cutoff(ttl_days: int) -> str:
+    return (datetime.now(timezone.utc) - timedelta(days=ttl_days)).replace(microsecond=0).isoformat()
+
+
+def get_user_by_token(conn: sqlite3.Connection, token_hash: str, ttl_days: int) -> sqlite3.Row | None:
     return conn.execute(
         """
         SELECT u.id, u.email, u.name, u.surname, u.created_at
         FROM sessions s
         JOIN users u ON u.id = s.user_id
-        WHERE s.token = ?
+        WHERE s.token = ? AND s.created_at >= ?
         """,
-        (token,),
+        (token_hash, _session_cutoff(ttl_days)),
     ).fetchone()
 
 
-def delete_session(conn: sqlite3.Connection, token: str) -> None:
-    conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+def delete_session(conn: sqlite3.Connection, token_hash: str) -> None:
+    conn.execute("DELETE FROM sessions WHERE token = ?", (token_hash,))
+
+
+def delete_expired_sessions(conn: sqlite3.Connection, ttl_days: int) -> None:
+    conn.execute("DELETE FROM sessions WHERE created_at < ?", (_session_cutoff(ttl_days),))
 
 
 def ensure_device_and_sensor(conn: sqlite3.Connection, device_id: str, sensor_type: str, unit: str) -> int:

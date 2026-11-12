@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import sys
 import time
 import urllib.request
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000"
+INGEST_TOKEN = os.environ.get("INGEST_TOKEN", "")
 
 
 def post(temp: float, hum: float) -> None:
@@ -20,11 +22,14 @@ def post(temp: float, hum: float) -> None:
         ],
     }
     data = json.dumps(body).encode("utf-8")
+    headers = {"Content-Type": "application/json; charset=utf-8"}
+    if INGEST_TOKEN:
+        headers["X-Device-Token"] = INGEST_TOKEN
     req = urllib.request.Request(
         BASE + "/telemetry",
         data=data,
         method="POST",
-        headers={"Content-Type": "application/json"},
+        headers=headers,
     )
     with urllib.request.urlopen(req, timeout=10) as resp:
         print(resp.read().decode("utf-8"))

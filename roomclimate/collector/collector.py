@@ -15,6 +15,8 @@ import urllib.request
 SERVER_URL = os.environ.get("SERVER_URL", "http://127.0.0.1:8000").rstrip("/")
 DEVICE_ID = os.environ.get("DEVICE_ID", "pi-1")
 PERIOD_SEC = float(os.environ.get("PERIOD_SEC", "10"))
+# Должен совпадать с INGEST_TOKEN на сервере (если он там задан).
+INGEST_TOKEN = os.environ.get("INGEST_TOKEN", "")
 
 
 def read_sensor() -> tuple[float, float]:
@@ -31,11 +33,14 @@ def send(temperature: float, humidity: float) -> None:
         ],
     }
     data = json.dumps(body).encode("utf-8")
+    headers = {"Content-Type": "application/json; charset=utf-8"}
+    if INGEST_TOKEN:
+        headers["X-Device-Token"] = INGEST_TOKEN
     req = urllib.request.Request(
         SERVER_URL + "/telemetry",
         data=data,
         method="POST",
-        headers={"Content-Type": "application/json"},
+        headers=headers,
     )
     with urllib.request.urlopen(req, timeout=10) as resp:
         print(resp.read().decode("utf-8"))
