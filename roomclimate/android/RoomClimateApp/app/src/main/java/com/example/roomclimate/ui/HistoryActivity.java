@@ -15,10 +15,9 @@ import com.example.roomclimate.models.HistoryResponse;
 import com.example.roomclimate.network.ApiClient;
 import com.example.roomclimate.network.ServerConfig;
 
-import com.example.roomclimate.network.ApiErrors;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -32,9 +31,6 @@ public class HistoryActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (SessionGuard.requireLogin(this)) {
-            return;
-        }
         setContentView(R.layout.activity_history);
 
         tvSummary = findViewById(R.id.tvHistorySummary);
@@ -59,9 +55,6 @@ public class HistoryActivity extends AppCompatActivity {
             @Override
             public void onResponse(@NonNull Call<HistoryResponse> call,
                                    @NonNull Response<HistoryResponse> response) {
-                if (SessionGuard.handleUnauthorized(HistoryActivity.this, response)) {
-                    return;
-                }
                 if (!response.isSuccessful() || response.body() == null) {
                     tvSummary.setText(getString(R.string.connection_http_error, response.code()));
                     return;
@@ -71,9 +64,8 @@ public class HistoryActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(@NonNull Call<HistoryResponse> call, @NonNull Throwable t) {
-                String message = ApiErrors.network(t);
-                tvSummary.setText(message);
-                Toast.makeText(HistoryActivity.this, message, Toast.LENGTH_SHORT).show();
+                tvSummary.setText(getString(R.string.connection_failed, t.getMessage()));
+                Toast.makeText(HistoryActivity.this, t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -84,12 +76,13 @@ public class HistoryActivity extends AppCompatActivity {
         if (points != null) {
             for (int i = points.size() - 1; i >= 0; i--) {
                 HistoryPoint point = points.get(i);
-                rows.add(getString(
-                        R.string.history_row,
-                        Formatters.time(point.measuredAt),
-                        Formatters.sensor(this, point.type),
-                        Formatters.number(point.value),
-                        Formatters.unit(point.unit)
+                rows.add(String.format(
+                        Locale.US,
+                        "%s  %s  %.1f %s",
+                        point.measuredAt,
+                        point.type,
+                        point.value,
+                        point.unit
                 ));
             }
         }
