@@ -1,23 +1,35 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import logging
+import sqlite3
 from contextlib import asynccontextmanager
 
-import sqlite3
-
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import auth, db
+from app import access, auth, db, extras
 from app.config import settings
 from app.db import utc_now
+from app.errors import translate_http_detail, validation_message
 from app.redis_store import enqueue, read_current, redis_client, write_current
 from app.schemas import LoginIn, RegisterIn, SettingsIn, TelemetryIn
+
+log = logging.getLogger("roomclimate")
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     db.init_db()
+    if not settings.ingest_token:
+        log.warning(
+            "INGEST_TOKEN не задан: POST /telemetry принимает данные от любого устройства в сети"
+        )
     yield
 
 
@@ -30,9 +42,30 @@ app.add_middleware(
 )
 
 
-def _normalize_email(email: str) -> str:
-    return email.strip().lower()
+# ---------- Ошибки на русском ----------
 
+@app.exception_handler(RequestValidationError)
+async def _validation_handler(_request: Request, exc: RequestValidationError):
+    # Раньше клиент получал английский список pydantic-ошибок и показывал его сырым JSON.
+    return JSONResponse(status_code=422, content={"detail": validation_message(exc.errors())})
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _http_handler(_request: Request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": translate_http_detail(exc.status_code, exc.detail)},
+        headers=getattr(exc, "headers", None),
+    )
+
+
+@app.exception_handler(Exception)
+async def _unhandled_handler(_request: Request, exc: Exception):
+    log.exception("Необработанная ошибка: %s", exc)
+    return JSONResponse(status_code=500, content={"detail": "Внутренняя ошибка сервера"})
+
+
+# ---------- Авторизация ----------
 
 def _bearer_token(authorization: str | None) -> str:
     if not authorization:
@@ -43,29 +76,104 @@ def _bearer_token(authorization: str | None) -> str:
     return token.strip()
 
 
+def current_user(authorization: str | None = Header(default=None)):
+    """Зависимость для эндпоинтов, доступных только вошедшему пользователю."""
+    token = _bearer_token(authorization)
+    conn = db.connect()
+    try:
+        user = db.get_user_by_token(conn, auth.hash_token(token), settings.session_ttl_days)
+    finally:
+        conn.close()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Сессия недействительна, войдите заново")
+    return user
+
+
+def device_access(x_device_token: str | None = Header(default=None)) -> None:
+    """Если на сервере задан INGEST_TOKEN, плата обязана прислать его в X-Device-Token."""
+    expected = settings.ingest_token
+    if not expected:
+        return
+    if not x_device_token or not hmac.compare_digest(x_device_token, expected):
+        raise HTTPException(status_code=401, detail="Неверный токен устройства")
+
+
+def _new_session(conn: sqlite3.Connection, user_id: int) -> str:
+    token = auth.new_token()
+    db.create_session(conn, user_id, auth.hash_token(token))
+    return token
+
+
 def _auth_response(user_row, token: str) -> dict:
     payload = auth.user_payload(user_row)
     payload["token"] = token
     return payload
 
 
-@app.post("/auth/register")
-def register(body: RegisterIn):
-    email = _normalize_email(body.email)
-    if "@" not in email:
-        raise HTTPException(status_code=400, detail="Некорректный email")
-    name = body.name.strip()
-    surname = body.surname.strip()
-    if not name or not surname:
-        raise HTTPException(status_code=400, detail="Укажите имя и фамилию")
+# ---------- Ограничение попыток входа ----------
 
+def _failures_key(email: str) -> str:
+    digest = hashlib.sha256(email.encode("utf-8")).hexdigest()[:32]
+    return f"login_fail:{digest}"
+
+
+def _login_attempts_exceeded(email: str) -> bool:
+    try:
+        raw = redis_client().get(_failures_key(email))
+    except RedisError:
+        return False  # Redis упал — не блокируем вход полностью
+    return raw is not None and int(raw) >= settings.login_max_failures_per_email
+
+
+def _register_login_failure(email: str) -> None:
+    try:
+        r = redis_client()
+        key = _failures_key(email)
+        count = r.incr(key)
+        if count == 1:
+            r.expire(key, settings.login_failure_window_seconds)
+    except RedisError:
+        pass
+
+
+IP_AUTH_LIMIT = 40          # попыток входа/регистрации
+IP_AUTH_WINDOW_SECONDS = 60  # за минуту с одного адреса
+
+
+def _check_ip_rate(request: Request) -> None:
+    """Лимит по IP: лимит по email не спасает от перебора по разным адресам, а каждая
+    попытка — это 600 000 итераций PBKDF2 (≈0,3 с процессора)."""
+    ip = request.client.host if request.client else "unknown"
+    key = f"auth_ip:{hashlib.sha256(ip.encode('utf-8')).hexdigest()[:32]}"
+    try:
+        r = redis_client()
+        count = r.incr(key)
+        if count == 1:
+            r.expire(key, IP_AUTH_WINDOW_SECONDS)
+    except RedisError:
+        return
+    if count > IP_AUTH_LIMIT:
+        raise HTTPException(status_code=429, detail="Слишком много запросов. Подождите минуту.")
+
+
+def _reset_login_failures(email: str) -> None:
+    try:
+        redis_client().delete(_failures_key(email))
+    except RedisError:
+        pass
+
+
+# ---------- Аккаунт ----------
+
+@app.post("/auth/register")
+def register(body: RegisterIn, request: Request):
+    _check_ip_rate(request)
     conn = db.connect()
     try:
-        if db.get_user_by_email(conn, email) is not None:
+        if db.get_user_by_email(conn, body.email) is not None:
             raise HTTPException(status_code=409, detail="Пользователь с таким email уже есть")
-        user = db.create_user(conn, email, auth.hash_password(body.password), name, surname)
-        token = auth.new_token()
-        db.create_session(conn, int(user["id"]), token)
+        user = db.create_user(conn, body.email, auth.hash_password(body.password), body.name, body.surname)
+        token = _new_session(conn, int(user["id"]))
         conn.commit()
         return _auth_response(user, token)
     except HTTPException:
@@ -79,15 +187,29 @@ def register(body: RegisterIn):
 
 
 @app.post("/auth/login")
-def login(body: LoginIn):
-    email = _normalize_email(body.email)
+def login(body: LoginIn, request: Request):
+    _check_ip_rate(request)
+    email = body.email
+    if _login_attempts_exceeded(email):
+        minutes = max(1, settings.login_failure_window_seconds // 60)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Слишком много неудачных попыток входа. Попробуйте через {minutes} мин.",
+        )
     conn = db.connect()
     try:
         user = db.get_user_by_email(conn, email)
-        if user is None or not auth.verify_password(body.password, user["password_hash"]):
+        if user is None:
+            auth.burn_password_check(body.password)
+            ok = False
+        else:
+            ok = auth.verify_password(body.password, user["password_hash"])
+        if not ok:
+            _register_login_failure(email)
             raise HTTPException(status_code=401, detail="Неверный email или пароль")
-        token = auth.new_token()
-        db.create_session(conn, int(user["id"]), token)
+        _reset_login_failures(email)
+        db.delete_expired_sessions(conn, settings.session_ttl_days)
+        token = _new_session(conn, int(user["id"]))
         conn.commit()
         return _auth_response(user, token)
     finally:
@@ -95,15 +217,7 @@ def login(body: LoginIn):
 
 
 @app.get("/auth/me")
-def me(authorization: str | None = Header(default=None)):
-    token = _bearer_token(authorization)
-    conn = db.connect()
-    try:
-        user = db.get_user_by_token(conn, token)
-    finally:
-        conn.close()
-    if user is None:
-        raise HTTPException(status_code=401, detail="Сессия недействительна")
+def me(user=Depends(current_user)):
     return auth.user_payload(user)
 
 
@@ -112,12 +226,14 @@ def logout(authorization: str | None = Header(default=None)):
     token = _bearer_token(authorization)
     conn = db.connect()
     try:
-        db.delete_session(conn, token)
+        db.delete_session(conn, auth.hash_token(token))
         conn.commit()
     finally:
         conn.close()
     return {"status": "ok"}
 
+
+# ---------- Служебное ----------
 
 @app.get("/health")
 def health():
@@ -138,7 +254,9 @@ def health():
     return {"status": status, "redis": redis_ok, "sqlite": sqlite_ok}
 
 
-@app.post("/telemetry")
+# ---------- Телеметрия ----------
+
+@app.post("/telemetry", dependencies=[Depends(device_access)])
 def post_telemetry(body: TelemetryIn):
     measured_at = utc_now()
     try:
@@ -162,7 +280,8 @@ def post_telemetry(body: TelemetryIn):
 
 
 @app.get("/telemetry/current")
-def get_current(device_id: str = Query(default="pi-1")):
+def get_current(device_id: str = Query(default="pi-1", max_length=64), user=Depends(current_user)):
+    access.check(device_id, user)
     try:
         r = redis_client()
         current = read_current(r, device_id)
@@ -194,20 +313,27 @@ def get_current(device_id: str = Query(default="pi-1")):
         }
         restored[row["type"]] = payload
         if r is not None:
-            write_current(r, device_id, row["type"], payload)
+            try:
+                write_current(r, device_id, row["type"], payload)
+            except RedisError:
+                r = None
     return {"device_id": device_id, "source": "sqlite", "readings": restored}
 
 
 @app.get("/telemetry/history")
 def get_history(
-    device_id: str = Query(default="pi-1"),
-    date_from: str | None = Query(default=None, alias="from"),
-    date_to: str | None = Query(default=None, alias="to"),
-    type: str | None = None,
+    user=Depends(current_user),
+    device_id: str = Query(default="pi-1", max_length=64),
+    date_from: str | None = Query(default=None, alias="from", max_length=64),
+    date_to: str | None = Query(default=None, alias="to", max_length=64),
+    type: str | None = Query(default=None, max_length=64),
+    max_points: int = Query(default=2000, ge=10, le=20000),
 ):
+    access.check(device_id, user)
     conn = db.connect()
     try:
-        rows = db.history(conn, device_id, date_from, date_to, type)
+        # Не больше max_points точек на датчик: длинные периоды усредняются по интервалам.
+        rows = db.history_compact(conn, device_id, date_from, date_to, type, max_points)
         points = [
             {
                 "type": row["type"],
@@ -222,8 +348,11 @@ def get_history(
     return {"device_id": device_id, "count": len(points), "points": points}
 
 
+# ---------- Пороги ----------
+
 @app.get("/settings")
-def get_settings(device_id: str = Query(default="pi-1")):
+def get_settings(device_id: str = Query(default="pi-1", max_length=64), user=Depends(current_user)):
+    access.check(device_id, user)
     conn = db.connect()
     try:
         row = db.get_settings(conn, device_id)
@@ -249,11 +378,22 @@ def get_settings(device_id: str = Query(default="pi-1")):
 
 
 @app.put("/settings")
-def put_settings(body: SettingsIn, device_id: str = Query(default="pi-1")):
+def put_settings(
+    body: SettingsIn,
+    device_id: str = Query(default="pi-1", min_length=1, max_length=64),
+    user=Depends(current_user),
+):
+    access.check(device_id, user)
     if body.temp_min >= body.temp_max:
-        raise HTTPException(status_code=400, detail="temp_min должен быть меньше temp_max")
+        raise HTTPException(
+            status_code=400,
+            detail="Минимальная температура должна быть меньше максимальной",
+        )
     if body.humidity_min >= body.humidity_max:
-        raise HTTPException(status_code=400, detail="humidity_min должен быть меньше humidity_max")
+        raise HTTPException(
+            status_code=400,
+            detail="Минимальная влажность должна быть меньше максимальной",
+        )
     conn = db.connect()
     try:
         db.put_settings(
@@ -275,6 +415,10 @@ def put_settings(body: SettingsIn, device_id: str = Query(default="pi-1")):
         "humidity_max": body.humidity_max,
         "saved": True,
     }
+
+
+# Аналитика, устройства, экспорт CSV, страница подключения — app/extras.py
+app.include_router(extras.build_router(current_user))
 
 
 @app.get("/")

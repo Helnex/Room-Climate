@@ -28,23 +28,36 @@ import static org.junit.Assert.assertTrue;
  */
 public class LiveServerIntegrationTest {
     private static final String BASE = "http://127.0.0.1:8000";
+    /** Если сервер запущен с INGEST_TOKEN, передайте тот же токен тестам через переменную окружения. */
+    private static final String INGEST_TOKEN = System.getenv("INGEST_TOKEN");
+    // Своя плата: pi-1 на стенде может быть закреплена за реальным пользователем.
+    private static final String DEVICE = "itest-" + (System.currentTimeMillis() / 1000);
     private final Gson gson = new Gson();
+    private String token;
 
     @Before
     public void seedTelemetry() throws Exception {
+        String email = "seed_" + System.nanoTime() + "@mail.com";
+        HttpResult registered = request("POST", "/auth/register", "{"
+                + "\"name\":\"Иван\",\"surname\":\"Тестов\","
+                + "\"email\":\"" + email + "\",\"password\":\"secret12\"}", null);
+        assertEquals("POST /auth/register", 200, registered.code);
+        token = gson.fromJson(registered.body, AuthResponse.class).token;
+        assertNotNull(token);
+
         String payload = "{"
-                + "\"device_id\":\"pi-1\","
+                + "\"device_id\":\"" + DEVICE + "\","
                 + "\"readings\":["
                 + "{\"type\":\"temperature\",\"value\":24.1,\"unit\":\"C\"},"
                 + "{\"type\":\"humidity\",\"value\":41.0,\"unit\":\"%\"}"
                 + "]}";
-        HttpResult posted = request("POST", "/telemetry", payload);
+        HttpResult posted = request("POST", "/telemetry", payload, null);
         assertEquals("POST /telemetry", 200, posted.code);
     }
 
     @Test
     public void healthMatchesAppModel() throws Exception {
-        HttpResult result = request("GET", "/health", null);
+        HttpResult result = request("GET", "/health", null, null);
         assertEquals(200, result.code);
         HealthResponse health = gson.fromJson(result.body, HealthResponse.class);
         assertTrue(health.isOk());
@@ -52,10 +65,10 @@ public class LiveServerIntegrationTest {
 
     @Test
     public void currentTelemetryMatchesAppModel() throws Exception {
-        HttpResult result = request("GET", "/telemetry/current?device_id=pi-1", null);
+        HttpResult result = request("GET", "/telemetry/current?device_id=" + DEVICE, null, token);
         assertEquals(200, result.code);
         CurrentTelemetryResponse current = gson.fromJson(result.body, CurrentTelemetryResponse.class);
-        assertEquals("pi-1", current.deviceId);
+        assertEquals(DEVICE, current.deviceId);
         assertNotNull(current.reading("temperature"));
         assertNotNull(current.reading("humidity"));
         assertEquals(24.1, current.reading("temperature").value, 0.01);
@@ -64,7 +77,7 @@ public class LiveServerIntegrationTest {
 
     @Test
     public void historyMatchesAppModel() throws Exception {
-        HttpResult result = request("GET", "/telemetry/history?device_id=pi-1", null);
+        HttpResult result = request("GET", "/telemetry/history?device_id=" + DEVICE, null, token);
         assertEquals(200, result.code);
         HistoryResponse history = gson.fromJson(result.body, HistoryResponse.class);
         assertTrue(history.count >= 2);
@@ -74,13 +87,13 @@ public class LiveServerIntegrationTest {
 
     @Test
     public void settingsRoundTripMatchesAppModel() throws Exception {
-        HttpResult put = request("PUT", "/settings?device_id=pi-1", "{\"temp_min\":18,\"temp_max\":26}");
+        HttpResult put = request("PUT", "/settings?device_id=" + DEVICE, "{\"temp_min\":18,\"temp_max\":26}", token);
         assertEquals(200, put.code);
         SettingsResponse saved = gson.fromJson(put.body, SettingsResponse.class);
         assertTrue(saved.saved);
         assertEquals(18.0, saved.tempMin, 0.01);
 
-        HttpResult get = request("GET", "/settings?device_id=pi-1", null);
+        HttpResult get = request("GET", "/settings?device_id=" + DEVICE, null, token);
         SettingsResponse loaded = gson.fromJson(get.body, SettingsResponse.class);
         assertEquals(26.0, loaded.tempMax, 0.01);
     }
@@ -94,7 +107,7 @@ public class LiveServerIntegrationTest {
                 + "\"email\":\"" + email + "\","
                 + "\"password\":\"secret12\""
                 + "}";
-        HttpResult registered = request("POST", "/auth/register", registerJson);
+        HttpResult registered = request("POST", "/auth/register", registerJson, null);
         assertEquals(200, registered.code);
         AuthResponse created = gson.fromJson(registered.body, AuthResponse.class);
         assertEquals(email, created.email);
@@ -102,21 +115,41 @@ public class LiveServerIntegrationTest {
         assertEquals("Ivan", created.name);
 
         HttpResult logged = request("POST", "/auth/login",
-                "{\"email\":\"" + email + "\",\"password\":\"secret12\"}");
+                "{\"email\":\"" + email + "\",\"password\":\"secret12\"}", null);
         assertEquals(200, logged.code);
         AuthResponse session = gson.fromJson(logged.body, AuthResponse.class);
         assertNotNull(session.token);
         assertEquals("Vekov", session.surname);
     }
 
-    private static HttpResult request(String method, String path, String jsonBody) throws Exception {
+    @Test
+    public void dataEndpointsRequireToken() throws Exception {
+        assertEquals(401, request("GET", "/telemetry/current?device_id=" + DEVICE, null, null).code);
+        assertEquals(401, request("GET", "/settings?device_id=" + DEVICE, null, null).code);
+    }
+
+    @Test
+    public void validationErrorsAreRussianText() throws Exception {
+        HttpResult result = request("POST", "/auth/register",
+                "{\"name\":\"Иван\",\"surname\":\"Тестов\",\"email\":\"x@mail.com\",\"password\":\"123\"}", null);
+        assertEquals(422, result.code);
+        assertTrue(result.body, result.body.contains("Пароль должен быть не короче 6 символов"));
+    }
+
+    private static HttpResult request(String method, String path, String jsonBody, String bearer) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(BASE + path).openConnection();
         connection.setRequestMethod(method);
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(8000);
+        if (bearer != null) {
+            connection.setRequestProperty("Authorization", "Bearer " + bearer);
+        }
+        if (INGEST_TOKEN != null && !INGEST_TOKEN.isEmpty() && path.equals("/telemetry")) {
+            connection.setRequestProperty("X-Device-Token", INGEST_TOKEN);
+        }
         if (jsonBody != null) {
             connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             byte[] bytes = jsonBody.getBytes(StandardCharsets.UTF_8);
             try (OutputStream os = connection.getOutputStream()) {
                 os.write(bytes);

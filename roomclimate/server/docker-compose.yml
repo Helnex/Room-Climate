@@ -1,3 +1,22 @@
+x-app-env: &app-env
+  REDIS_URL: redis://redis:6379/0
+  SQLITE_PATH: /data/roomclimate.db
+  CURRENT_TTL_SECONDS: "60"
+  # Секрет платы. scripts/start.ps1 сам создаёт server/.env с INGEST_TOKEN — тогда чужие
+  # устройства в Wi-Fi не смогут присылать поддельные показания. Пусто = приём от всех.
+  INGEST_TOKEN: ${INGEST_TOKEN:-}
+  SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+  # Через сколько секунд без показаний датчик считается «молчащим».
+  STALE_AFTER_SECONDS: ${STALE_AFTER_SECONDS:-180}
+  # Тревога, только если выход за порог держится дольше этого времени (защита от дребезга).
+  ALERT_DELAY_SECONDS: ${ALERT_DELAY_SECONDS:-60}
+  # Push-уведомления через ntfy (сервис ниже). Тема — секретная строка из server/.env.
+  NTFY_URL: http://ntfy:80
+  NTFY_TOPIC: ${NTFY_TOPIC:-}
+  NTFY_PUBLIC_PORT: "8090"
+  TLS_PUBLIC_PORT: "8443"
+  CERT_DIR: /certs
+
 services:
   redis:
     image: redis:7-alpine
@@ -13,12 +32,34 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    environment:
-      REDIS_URL: redis://redis:6379/0
-      SQLITE_PATH: /data/roomclimate.db
-      CURRENT_TTL_SECONDS: "60"
+    environment: *app-env
     volumes:
       - sqlite_data:/data
+      - certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if b'\"ok\"' in urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read() else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # То же API по HTTPS с самоподписанным сертификатом. Приложение принимает только этот
+  # ключ (pin передаётся через QR-код страницы /connect) — трафик в Wi-Fi шифруется.
+  api-tls:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    environment: *app-env
+    # Одной строкой: в многострочной YAML-записи переводы строк рвали команду,
+    # и uvicorn запускался без --ssl-* (обычный HTTP на 8443).
+    command: ["sh", "-c", "python -m app.tls_cert && exec uvicorn app.main:app --host 0.0.0.0 --port 8443 --ssl-keyfile /certs/key.pem --ssl-certfile /certs/cert.pem"]
+    volumes:
+      - sqlite_data:/data
+      - certs:/certs
     depends_on:
       redis:
         condition: service_healthy
@@ -27,9 +68,7 @@ services:
     build: .
     restart: unless-stopped
     command: python -m app.worker
-    environment:
-      REDIS_URL: redis://redis:6379/0
-      SQLITE_PATH: /data/roomclimate.db
+    environment: *app-env
     volumes:
       - sqlite_data:/data
     depends_on:
@@ -38,5 +77,21 @@ services:
       api:
         condition: service_started
 
+  # Сервер push-уведомлений (без Google/Firebase). На телефоне — приложение ntfy,
+  # подписка на http://IP_компьютера:8090/<NTFY_TOPIC> (ссылку даёт /notify/info).
+  ntfy:
+    image: binwiederhier/ntfy:v2.11.0
+    restart: unless-stopped
+    command: serve
+    ports:
+      - "8090:80"
+    volumes:
+      - ntfy_cache:/var/cache/ntfy
+    environment:
+      NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
+      NTFY_CACHE_DURATION: 24h
+
 volumes:
   sqlite_data:
+  certs:
+  ntfy_cache:

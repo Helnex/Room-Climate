@@ -18,4 +18,11 @@ $env:SERVER_URL="http://192.168.1.50:8000"
 python collector.py
 ```
 
+Если на сервере задан `INGEST_TOKEN` (см. `server/README.md`), укажите его и сборщику:
+
+```powershell
+$env:INGEST_TOKEN="тот-же-секрет-что-на-сервере"
+python collector.py
+```
+
 GPIO подключается в `collector.py` (сейчас стоит заглушка случайных значений).

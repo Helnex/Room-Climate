@@ -4,9 +4,11 @@ import time
 
 from redis.exceptions import RedisError
 
-from app import db
+from app import alerts, db
 from app.config import settings
 from app.redis_store import ensure_group, redis_client
+
+CONSUMER = "worker-1"
 
 
 def process_message(fields: dict) -> None:
@@ -20,8 +22,34 @@ def process_message(fields: dict) -> None:
         sensor_id = db.ensure_device_and_sensor(conn, device_id, sensor_type, unit)
         db.insert_measurement(conn, sensor_id, value, measured_at)
         conn.commit()
+        # Ошибка в тревогах не должна блокировать запись показаний (иначе вечный повтор).
+        try:
+            alerts.evaluate(conn, device_id, sensor_type, value, measured_at)
+            conn.commit()
+        except Exception as exc:  # noqa: BLE001
+            conn.rollback()
+            print(f"ошибка проверки тревог {device_id}/{sensor_type}: {exc!r}", flush=True)
     finally:
         conn.close()
+
+
+def handle(r, msg_id: str, fields: dict) -> bool:
+    """True — сообщение обработано (или выброшено как битое) и подтверждено.
+
+    False — временная ошибка (SQLite занят, диск): сообщение остаётся в pending
+    и будет перечитано. Раньше такое показание терялось навсегда: чтение с «>»
+    отдаёт только новые сообщения, а pending никто не перечитывал.
+    """
+    try:
+        process_message(fields)
+    except (KeyError, ValueError, TypeError) as exc:
+        # Битые данные не исправятся повтором — подтверждаем, иначе зациклимся.
+        print(f"пропущено битое сообщение {msg_id}: {exc!r}", flush=True)
+    except Exception as exc:
+        print(f"ошибка записи {msg_id}, повторю: {exc!r}", flush=True)
+        return False
+    r.xack(settings.stream_name, settings.stream_group, msg_id)
+    return True
 
 
 def run() -> None:
@@ -37,24 +65,49 @@ def run() -> None:
             time.sleep(2)
 
     print("Обработчик запущен", flush=True)
+    # При старте сначала дочитываем свои неподтверждённые сообщения ("0"),
+    # затем новые (">"). После временной ошибки снова переходим к pending.
+    read_from = "0"
+    next_silent_check = 0.0
     while True:
+        if time.monotonic() >= next_silent_check:
+            next_silent_check = time.monotonic() + 60
+            try:
+                conn = db.connect()
+                try:
+                    alerts.check_silent(conn)
+                    conn.commit()
+                finally:
+                    conn.close()
+            except Exception as exc:  # noqa: BLE001
+                print(f"ошибка проверки «датчик молчит»: {exc!r}", flush=True)
         try:
             r = redis_client()
             batches = r.xreadgroup(
                 settings.stream_group,
-                "worker-1",
-                {settings.stream_name: ">"},
+                CONSUMER,
+                {settings.stream_name: read_from},
                 count=50,
-                block=5000,
+                block=None if read_from == "0" else 5000,
             )
-            if not batches:
+            messages = [m for _stream, msgs in (batches or []) for m in msgs]
+            if read_from == "0" and not messages:
+                read_from = ">"  # pending пуст — читаем новые
                 continue
-            for _stream, messages in batches:
-                for msg_id, fields in messages:
-                    process_message(fields)
+            failed = False
+            for msg_id, fields in messages:
+                if not fields:  # запись уже удалена обрезкой потока
                     r.xack(settings.stream_name, settings.stream_group, msg_id)
+                    continue
+                if not handle(r, msg_id, fields):
+                    failed = True
+                    break
+            if failed:
+                read_from = "0"
+                time.sleep(2)
         except Exception as exc:
             print(f"ошибка обработчика: {exc}", flush=True)
+            read_from = "0"
             time.sleep(2)
 
 

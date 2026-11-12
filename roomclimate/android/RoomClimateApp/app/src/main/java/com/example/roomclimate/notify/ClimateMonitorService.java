@@ -81,6 +81,26 @@ public class ClimateMonitorService extends Service {
         return START_STICKY;
     }
 
+    /**
+     * Android 15+: сервис типа dataSync может работать не дольше 6 часов в сутки. По истечении
+     * система вызывает onTimeout и, если сервис не остановился за несколько секунд, роняет
+     * приложение (ForegroundServiceDidNotStopInTimeException). Останавливаемся сами;
+     * при следующем открытии приложения DashboardActivity запустит мониторинг снова.
+     */
+    @Override
+    public void onTimeout(int startId, int fgsType) {
+        handler.removeCallbacksAndMessages(null);
+        polling = false;
+        stopSelf();
+    }
+
+    @Override
+    public void onTimeout(int startId) {
+        handler.removeCallbacksAndMessages(null);
+        polling = false;
+        stopSelf();
+    }
+
     @Override
     public void onDestroy() {
         handler.removeCallbacksAndMessages(null);
@@ -112,6 +132,11 @@ public class ClimateMonitorService extends Service {
             @Override
             public void onResponse(@NonNull Call<SettingsResponse> call,
                                    @NonNull Response<SettingsResponse> response) {
+                if (response.code() == 401) {
+                    // Сессия истекла: ApiClient уже сбросил токен, фоновую проверку прекращаем.
+                    stopSelf();
+                    return;
+                }
                 SettingsResponse settings = response.isSuccessful() ? response.body() : null;
                 if (settings == null) {
                     finishPoll();
@@ -135,6 +160,7 @@ public class ClimateMonitorService extends Service {
                 if (response.isSuccessful() && response.body() != null) {
                     check(response.body(), settings);
                 }
+                SensorWatch.check(ClimateMonitorService.this);
                 finishPoll();
             }
 
@@ -155,7 +181,7 @@ public class ClimateMonitorService extends Service {
                     temperature.value,
                     settings.tempMin,
                     settings.tempMax,
-                    temperature.unit == null ? "C" : temperature.unit
+                    temperature.unit == null ? "°C" : temperature.unit
             );
         }
         Reading humidity = body.reading("humidity");

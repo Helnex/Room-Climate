@@ -43,6 +43,16 @@ public class RegisterActivity extends AppCompatActivity {
 
         AppPermissions.request(this);
         tvGoToLogin.setOnClickListener(v -> finish());
+        // Политика обработки персональных данных — страница /privacy на сервере стенда.
+        findViewById(R.id.tvPrivacy).setOnClickListener(v -> {
+            String base = com.example.roomclimate.network.ServerConfig.getBaseUrl(this);
+            try {
+                startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse(base + "/privacy")));
+            } catch (android.content.ActivityNotFoundException ignored) {
+                Toast.makeText(this, base + "/privacy", Toast.LENGTH_LONG).show();
+            }
+        });
         btnCreateAccount.setOnClickListener(v -> attemptRegister());
     }
 
@@ -50,13 +60,21 @@ public class RegisterActivity extends AppCompatActivity {
         String name = editName.getText().toString().trim();
         String surname = editSurname.getText().toString().trim();
         String email = editEmailReg.getText().toString().trim();
-        String password = editPasswordReg.getText().toString().trim();
+        String password = editPasswordReg.getText().toString();
 
         if (name.isEmpty() || surname.isEmpty() || email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, R.string.auth_fill_register, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (password.length() < 6) {
+        if (!AuthValidation.isEmail(email)) {
+            Toast.makeText(this, R.string.auth_bad_email, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (password.trim().isEmpty()) {
+            Toast.makeText(this, R.string.auth_password_blank, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (password.codePointCount(0, password.length()) < 6) {
             Toast.makeText(this, R.string.auth_password_short, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -65,7 +83,7 @@ public class RegisterActivity extends AppCompatActivity {
         ServerDiscovery.ensure(this, url -> {
             if (url == null) {
                 setLoading(false);
-                Toast.makeText(this, R.string.server_not_found, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, ServerDiscovery.lastFailureMessage(), Toast.LENGTH_LONG).show();
                 return;
             }
             sendRegister(name, surname, email, password);

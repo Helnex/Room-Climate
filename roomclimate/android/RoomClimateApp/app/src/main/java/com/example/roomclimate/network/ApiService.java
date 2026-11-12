@@ -51,4 +51,41 @@ public interface ApiService {
             @Query("device_id") String deviceId,
             @Body SettingsRequest body
     );
+
+    // ---- Устройства, аналитика, экспорт (экран «Устройства») ----
+
+    @GET("devices")
+    Call<com.example.roomclimate.models.DevicesResponse> getDevices();
+
+    @GET("telemetry/insights")
+    Call<com.example.roomclimate.models.InsightsResponse> getInsights(
+            @Query("device_id") String deviceId,
+            @Query("hours") int hours
+    );
+
+    @GET("telemetry/export.csv")
+    Call<okhttp3.ResponseBody> exportCsv(
+            @Query("device_id") String deviceId,
+            @Query("hours") int hours
+    );
+
+    // ---- Владельцы, тревоги, push, аккаунт ----
+
+    @POST("devices/{device_id}/claim")
+    Call<com.google.gson.JsonObject> claimDevice(@retrofit2.http.Path("device_id") String deviceId);
+
+    @POST("devices/{device_id}/members")
+    Call<com.google.gson.JsonObject> addMember(
+            @retrofit2.http.Path("device_id") String deviceId,
+            @Body com.google.gson.JsonObject body
+    );
+
+    @GET("alerts")
+    Call<com.google.gson.JsonObject> getAlerts(@Query("device_id") String deviceId, @Query("limit") int limit);
+
+    @GET("notify/info")
+    Call<com.google.gson.JsonObject> getNotifyInfo();
+
+    @retrofit2.http.DELETE("auth/me")
+    Call<com.google.gson.JsonObject> deleteAccount();
 }

@@ -30,15 +30,57 @@ public final class ServerConfig {
     }
 
     public static void save(Context context, String baseUrl, String deviceId) {
+        String url = normalizeBaseUrl(baseUrl);
+        SharedPreferences.Editor editor = prefs(context).edit()
+                .putString(KEY_BASE_URL, url)
+                .putString(KEY_DEVICE_ID, deviceId.trim());
+        if (!url.equals(getBaseUrl(context))) {
+            // Отпечаток ключа относится к конкретному серверу: другой адрес — другой ключ.
+            editor.remove(KEY_PIN);
+        }
+        editor.apply();
+        ApiClient.reset();
+    }
+
+    public static final String KEY_PIN = "tls_pin";
+
+    /** Отпечаток ключа HTTPS-сервера (sha256/…), полученный через QR-код, или "". */
+    public static String getPin(Context context) {
+        return prefs(context).getString(KEY_PIN, "");
+    }
+
+    /** Сохранить адрес вместе с отпечатком ключа (подключение по QR). */
+    public static void saveWithPin(Context context, String baseUrl, String pin) {
         prefs(context).edit()
                 .putString(KEY_BASE_URL, normalizeBaseUrl(baseUrl))
-                .putString(KEY_DEVICE_ID, deviceId.trim())
+                .putString(KEY_PIN, TlsPinning.isValidPin(pin) ? pin : "")
                 .apply();
         ApiClient.reset();
     }
 
     public static void saveBaseUrl(Context context, String baseUrl) {
         save(context, baseUrl, getDeviceId(context));
+    }
+
+    /**
+     * Можно ли отправлять на этот адрес токен и пароль. HTTP без шифрования — только для
+     * локальной сети (частные IP, 127.x, *.local, эмулятор); в интернет — только HTTPS.
+     */
+    public static boolean isAllowedBaseUrl(String raw) {
+        String url = normalizeBaseUrl(raw);
+        String host = LocalNet.hostOf(url);
+        if (host.isEmpty()) {
+            return false;
+        }
+        String lower = url.toLowerCase(java.util.Locale.ROOT);
+        if (lower.startsWith("https://")) {
+            return true;
+        }
+        if (!lower.startsWith("http://")) {
+            return false;
+        }
+        String h = host.toLowerCase(java.util.Locale.ROOT);
+        return LocalNet.isPrivate(h) || h.startsWith("127.") || h.equals("localhost") || h.endsWith(".local");
     }
 
     public static String normalizeBaseUrl(String raw) {
