@@ -81,6 +81,26 @@ public class ClimateMonitorService extends Service {
         return START_STICKY;
     }
 
+    /**
+     * Android 15+: сервис типа dataSync может работать не дольше 6 часов в сутки. По истечении
+     * система вызывает onTimeout и, если сервис не остановился за несколько секунд, роняет
+     * приложение (ForegroundServiceDidNotStopInTimeException). Останавливаемся сами;
+     * при следующем открытии приложения DashboardActivity запустит мониторинг снова.
+     */
+    @Override
+    public void onTimeout(int startId, int fgsType) {
+        handler.removeCallbacksAndMessages(null);
+        polling = false;
+        stopSelf();
+    }
+
+    @Override
+    public void onTimeout(int startId) {
+        handler.removeCallbacksAndMessages(null);
+        polling = false;
+        stopSelf();
+    }
+
     @Override
     public void onDestroy() {
         handler.removeCallbacksAndMessages(null);

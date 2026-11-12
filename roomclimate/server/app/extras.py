@@ -27,6 +27,15 @@ _HOST_RE = re.compile(r"^[A-Za-z0-9.\-]+(:\d{1,5})?$|^\[[0-9A-Fa-f:]+\](:\d{1,5}
 _SENSOR_LABELS = {"temperature": "Температура", "humidity": "Влажность"}
 
 
+def _csv_text(value) -> str:
+    """Защита от CSV/формульной инъекции (OWASP): Excel исполняет ячейки, начинающиеся
+    с = + - @ или табуляции/перевода строки. Такие текстовые значения экранируем апострофом."""
+    text = "" if value is None else str(value)
+    if text and text[0] in ("=", "+", "-", "@", "\t", "\r", "\n"):
+        return "'" + text
+    return text
+
+
 def _iso(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -69,13 +78,20 @@ def build_router(current_user) -> APIRouter:
         since = _iso(datetime.now(timezone.utc) - timedelta(hours=hours))
         conn = db.connect()
         try:
-            rows = db.history(conn, device_id, since, None, None)
+            # Агрегаты считает SQLite — раньше все строки периода грузились в Python.
+            aggregates = db.period_stats(conn, device_id, since)
             limits = db.get_settings(conn, device_id)
         finally:
             conn.close()
-        series: dict[str, list[float]] = {}
-        for row in rows:
-            series.setdefault(row["type"], []).append(float(row["value"]))
+        stats = {
+            row["type"]: {
+                "min": round(row["min"], 1),
+                "max": round(row["max"], 1),
+                "avg": round(row["avg"], 1),
+                "count": row["count"],
+            }
+            for row in aggregates
+        }
 
         t_min = limits["temp_min"] if limits else 18.0
         t_max = limits["temp_max"] if limits else 26.0
@@ -99,7 +115,7 @@ def build_router(current_user) -> APIRouter:
                 "humidity": insights.threshold_state(hum, h_min, h_max),
             },
             "period_hours": hours,
-            "stats": {sensor: insights.stats(values) for sensor, values in series.items()},
+            "stats": stats,
         }
 
     @router.get("/devices", dependencies=auth)
@@ -158,11 +174,11 @@ def build_router(current_user) -> APIRouter:
         for row in rows:
             unit = "°C" if row["unit"] in ("C", "c", "°C") else row["unit"]
             writer.writerow([
-                row["measured_at"],
-                device_id,
-                _SENSOR_LABELS.get(row["type"], row["type"]),
+                _csv_text(row["measured_at"]),
+                _csv_text(device_id),
+                _csv_text(_SENSOR_LABELS.get(row["type"], row["type"])),
                 str(row["value"]).replace(".", ","),
-                unit,
+                _csv_text(unit),
             ])
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M")
         safe_device = re.sub(r"[^A-Za-z0-9_-]", "_", device_id)

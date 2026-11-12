@@ -88,12 +88,11 @@ public final class ServerDiscovery {
         String url = ServerConfig.normalizeBaseUrl(rawUrl);
         new Thread(() -> {
             String ok = null;
-            String host = LocalNet.hostOf(url);
+            String host = LocalNet.hostOf(url).toLowerCase(java.util.Locale.ROOT);
             // Только локальные адреса: ссылку roomclimate:// может открыть любой сайт, и без этой
             // проверки он подменил бы сервер — пароль при входе ушёл бы чужому серверу.
-            boolean local = LocalNet.isPrivate(host) || host.startsWith("127.")
-                    || host.toLowerCase(java.util.Locale.ROOT).endsWith(".local");
-            if (local && (url.startsWith("http://") || url.startsWith("https://"))) {
+            boolean local = LocalNet.isPrivate(host) || host.startsWith("127.") || host.endsWith(".local");
+            if (local && ServerConfig.isAllowedBaseUrl(url)) {
                 List<LocalLinks.Link> links = LocalLinks.collect(app);
                 if (health(links, LocalLinks.vpnActive(app), url, 3000)) {
                     ok = remember(app, url);

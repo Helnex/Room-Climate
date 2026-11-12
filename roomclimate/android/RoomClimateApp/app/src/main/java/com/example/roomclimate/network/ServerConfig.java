@@ -41,6 +41,27 @@ public final class ServerConfig {
         save(context, baseUrl, getDeviceId(context));
     }
 
+    /**
+     * Можно ли отправлять на этот адрес токен и пароль. HTTP без шифрования — только для
+     * локальной сети (частные IP, 127.x, *.local, эмулятор); в интернет — только HTTPS.
+     */
+    public static boolean isAllowedBaseUrl(String raw) {
+        String url = normalizeBaseUrl(raw);
+        String host = LocalNet.hostOf(url);
+        if (host.isEmpty()) {
+            return false;
+        }
+        String lower = url.toLowerCase(java.util.Locale.ROOT);
+        if (lower.startsWith("https://")) {
+            return true;
+        }
+        if (!lower.startsWith("http://")) {
+            return false;
+        }
+        String h = host.toLowerCase(java.util.Locale.ROOT);
+        return LocalNet.isPrivate(h) || h.startsWith("127.") || h.equals("localhost") || h.endsWith(".local");
+    }
+
     public static String normalizeBaseUrl(String raw) {
         String url = raw == null ? "" : raw.trim();
         while (url.endsWith("/")) {

@@ -136,6 +136,26 @@ def _register_login_failure(email: str) -> None:
         pass
 
 
+IP_AUTH_LIMIT = 40          # попыток входа/регистрации
+IP_AUTH_WINDOW_SECONDS = 60  # за минуту с одного адреса
+
+
+def _check_ip_rate(request: Request) -> None:
+    """Лимит по IP: лимит по email не спасает от перебора по разным адресам, а каждая
+    попытка — это 600 000 итераций PBKDF2 (≈0,3 с процессора)."""
+    ip = request.client.host if request.client else "unknown"
+    key = f"auth_ip:{hashlib.sha256(ip.encode('utf-8')).hexdigest()[:32]}"
+    try:
+        r = redis_client()
+        count = r.incr(key)
+        if count == 1:
+            r.expire(key, IP_AUTH_WINDOW_SECONDS)
+    except RedisError:
+        return
+    if count > IP_AUTH_LIMIT:
+        raise HTTPException(status_code=429, detail="Слишком много запросов. Подождите минуту.")
+
+
 def _reset_login_failures(email: str) -> None:
     try:
         redis_client().delete(_failures_key(email))
@@ -146,7 +166,8 @@ def _reset_login_failures(email: str) -> None:
 # ---------- Аккаунт ----------
 
 @app.post("/auth/register")
-def register(body: RegisterIn):
+def register(body: RegisterIn, request: Request):
+    _check_ip_rate(request)
     conn = db.connect()
     try:
         if db.get_user_by_email(conn, body.email) is not None:
@@ -166,7 +187,8 @@ def register(body: RegisterIn):
 
 
 @app.post("/auth/login")
-def login(body: LoginIn):
+def login(body: LoginIn, request: Request):
+    _check_ip_rate(request)
     email = body.email
     if _login_attempts_exceeded(email):
         minutes = max(1, settings.login_failure_window_seconds // 60)
@@ -303,10 +325,12 @@ def get_history(
     date_from: str | None = Query(default=None, alias="from", max_length=64),
     date_to: str | None = Query(default=None, alias="to", max_length=64),
     type: str | None = Query(default=None, max_length=64),
+    max_points: int = Query(default=2000, ge=10, le=20000),
 ):
     conn = db.connect()
     try:
-        rows = db.history(conn, device_id, date_from, date_to, type)
+        # Не больше max_points точек на датчик: длинные периоды усредняются по интервалам.
+        rows = db.history_compact(conn, device_id, date_from, date_to, type, max_points)
         points = [
             {
                 "type": row["type"],

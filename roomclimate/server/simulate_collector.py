@@ -41,7 +41,10 @@ def main() -> None:
     while True:
         temp += random.uniform(-0.4, 0.4)
         hum += random.uniform(-1.0, 1.0)
-        post(temp, hum)
+        try:
+            post(temp, hum)
+        except Exception as exc:  # сервер перезапускается — не падаем, ждём следующий цикл
+            print(f"ошибка отправки: {exc!r}", flush=True)
         time.sleep(10)
 
 

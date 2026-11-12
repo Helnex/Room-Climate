@@ -16,16 +16,21 @@ def normalize_email(value: str) -> str:
     return normalize_text(value).lower()
 
 
+# Идентификаторы платы и датчика попадают в ключи Redis, имена файлов и CSV-выгрузку:
+# только безопасные символы (защита от формульных инъекций в Excel и мусора в ключах).
+SAFE_ID = r"^[A-Za-z0-9_.\-]+$"
+
+
 class ReadingIn(BaseModel):
     model_config = ConfigDict(allow_inf_nan=False)
 
-    type: str = Field(min_length=1, max_length=64)
+    type: str = Field(min_length=1, max_length=64, pattern=SAFE_ID)
     value: float
     unit: str = Field(min_length=1, max_length=16)
 
 
 class TelemetryIn(BaseModel):
-    device_id: str = Field(min_length=1, max_length=64)
+    device_id: str = Field(min_length=1, max_length=64, pattern=SAFE_ID)
     readings: list[ReadingIn] = Field(min_length=1, max_length=32)
 
 

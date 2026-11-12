@@ -48,10 +48,20 @@ def send(temperature: float, humidity: float) -> None:
 
 def main() -> None:
     print(f"collector -> {SERVER_URL} device={DEVICE_ID} period={PERIOD_SEC}s")
+    failures = 0
     while True:
-        t, h = read_sensor()
-        send(t, h)
-        time.sleep(PERIOD_SEC)
+        try:
+            t, h = read_sensor()
+            send(t, h)
+            failures = 0
+        except Exception as exc:  # noqa: BLE001 — сбор не должен останавливаться
+            # Раньше любая ошибка (сервер перезапускается, Wi-Fi пропал, сбой датчика)
+            # завершала процесс, и плата молчала до ручного перезапуска.
+            failures += 1
+            print(f"ошибка отправки ({failures} подряд): {exc!r}", flush=True)
+        # При серии ошибок увеличиваем паузу (до 60 с), чтобы не заваливать сеть.
+        delay = PERIOD_SEC if failures == 0 else min(60.0, PERIOD_SEC * min(failures, 6))
+        time.sleep(delay)
 
 
 if __name__ == "__main__":

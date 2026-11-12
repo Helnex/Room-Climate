@@ -71,6 +71,10 @@ public class SettingsActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.settings_fill_connection, Toast.LENGTH_SHORT).show();
             return;
         }
+        if (!ServerConfig.isAllowedBaseUrl(url)) {
+            Toast.makeText(this, R.string.settings_url_not_allowed, Toast.LENGTH_LONG).show();
+            return;
+        }
         ServerConfig.save(this, url, deviceId);
         Toast.makeText(this, R.string.settings_connection_saved, Toast.LENGTH_SHORT).show();
         testConnection();
@@ -105,7 +109,8 @@ public class SettingsActivity extends AppCompatActivity {
     private void saveConnectionSilently() {
         String url = editBaseUrl.getText().toString().trim();
         String deviceId = editDeviceId.getText().toString().trim();
-        if (!url.isEmpty() && !deviceId.isEmpty()) {
+        // Небезопасный адрес (HTTP в интернет) молча не сохраняем: туда ушли бы токен и пароль.
+        if (!url.isEmpty() && !deviceId.isEmpty() && ServerConfig.isAllowedBaseUrl(url)) {
             ServerConfig.save(this, url, deviceId);
         }
     }
