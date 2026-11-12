@@ -4,7 +4,7 @@ import time
 
 from redis.exceptions import RedisError
 
-from app import db
+from app import alerts, db
 from app.config import settings
 from app.redis_store import ensure_group, redis_client
 
@@ -22,6 +22,13 @@ def process_message(fields: dict) -> None:
         sensor_id = db.ensure_device_and_sensor(conn, device_id, sensor_type, unit)
         db.insert_measurement(conn, sensor_id, value, measured_at)
         conn.commit()
+        # Ошибка в тревогах не должна блокировать запись показаний (иначе вечный повтор).
+        try:
+            alerts.evaluate(conn, device_id, sensor_type, value, measured_at)
+            conn.commit()
+        except Exception as exc:  # noqa: BLE001
+            conn.rollback()
+            print(f"ошибка проверки тревог {device_id}/{sensor_type}: {exc!r}", flush=True)
     finally:
         conn.close()
 
@@ -61,7 +68,19 @@ def run() -> None:
     # При старте сначала дочитываем свои неподтверждённые сообщения ("0"),
     # затем новые (">"). После временной ошибки снова переходим к pending.
     read_from = "0"
+    next_silent_check = 0.0
     while True:
+        if time.monotonic() >= next_silent_check:
+            next_silent_check = time.monotonic() + 60
+            try:
+                conn = db.connect()
+                try:
+                    alerts.check_silent(conn)
+                    conn.commit()
+                finally:
+                    conn.close()
+            except Exception as exc:  # noqa: BLE001
+                print(f"ошибка проверки «датчик молчит»: {exc!r}", flush=True)
         try:
             r = redis_client()
             batches = r.xreadgroup(

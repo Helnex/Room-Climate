@@ -43,6 +43,16 @@ public class RegisterActivity extends AppCompatActivity {
 
         AppPermissions.request(this);
         tvGoToLogin.setOnClickListener(v -> finish());
+        // Политика обработки персональных данных — страница /privacy на сервере стенда.
+        findViewById(R.id.tvPrivacy).setOnClickListener(v -> {
+            String base = com.example.roomclimate.network.ServerConfig.getBaseUrl(this);
+            try {
+                startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse(base + "/privacy")));
+            } catch (android.content.ActivityNotFoundException ignored) {
+                Toast.makeText(this, base + "/privacy", Toast.LENGTH_LONG).show();
+            }
+        });
         btnCreateAccount.setOnClickListener(v -> attemptRegister());
     }
 

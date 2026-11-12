@@ -45,6 +45,7 @@ public class AccountActivity extends AppCompatActivity {
         tvAvatar.setText(Formatters.initials(name, surname));
 
         tvLogout.setOnClickListener(v -> logout());
+        findViewById(R.id.tvDeleteAccount).setOnClickListener(v -> confirmDeleteAccount());
         Switch switchAlerts = findViewById(R.id.switchClimateAlerts);
         switchAlerts.setChecked(UserPrefs.alertsEnabled(this));
         switchAlerts.setOnCheckedChangeListener((CompoundButton button, boolean checked) -> {
@@ -76,6 +77,36 @@ public class AccountActivity extends AppCompatActivity {
                 clearAndGoLogin();
             }
         });
+    }
+
+    /** Удаление аккаунта и персональных данных на сервере (DELETE /auth/me) с подтверждением. */
+    private void confirmDeleteAccount() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.delete_account_title)
+                .setMessage(R.string.delete_account_text)
+                .setPositiveButton(R.string.delete_account_ok, (d, w) ->
+                        ApiClient.get(this).deleteAccount().enqueue(new Callback<com.google.gson.JsonObject>() {
+                            @Override
+                            public void onResponse(@NonNull Call<com.google.gson.JsonObject> call,
+                                                   @NonNull Response<com.google.gson.JsonObject> response) {
+                                if (response.isSuccessful()) {
+                                    Toast.makeText(AccountActivity.this, R.string.delete_account_done, Toast.LENGTH_LONG).show();
+                                    clearAndGoLogin();
+                                } else {
+                                    Toast.makeText(AccountActivity.this,
+                                            com.example.roomclimate.network.ApiErrors.message(response,
+                                                    getString(R.string.delete_account_title)), Toast.LENGTH_LONG).show();
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(@NonNull Call<com.google.gson.JsonObject> call, @NonNull Throwable t) {
+                                Toast.makeText(AccountActivity.this,
+                                        com.example.roomclimate.network.ApiErrors.network(t), Toast.LENGTH_LONG).show();
+                            }
+                        }))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void clearAndGoLogin() {

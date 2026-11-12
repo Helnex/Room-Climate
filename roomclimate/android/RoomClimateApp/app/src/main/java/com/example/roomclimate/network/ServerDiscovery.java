@@ -83,18 +83,25 @@ public final class ServerDiscovery {
      * Проверить конкретный адрес (из QR-кода страницы /connect) и, если сервер отвечает,
      * сохранить его. Callback получает адрес или null.
      */
-    public static void useUrl(Context context, String rawUrl, Callback callback) {
+    public static void useUrl(Context context, String rawUrl, String pin, Callback callback) {
         Context app = context.getApplicationContext();
         String url = ServerConfig.normalizeBaseUrl(rawUrl);
         new Thread(() -> {
             String ok = null;
+            // HTTPS стенда принимаем только вместе с корректным отпечатком ключа.
+            boolean https = url.startsWith("https://");
+            if (https && !TlsPinning.isValidPin(pin)) {
+                deliver(callback, null);
+                return;
+            }
             String host = LocalNet.hostOf(url).toLowerCase(java.util.Locale.ROOT);
             // Только локальные адреса: ссылку roomclimate:// может открыть любой сайт, и без этой
             // проверки он подменил бы сервер — пароль при входе ушёл бы чужому серверу.
             boolean local = LocalNet.isPrivate(host) || host.startsWith("127.") || host.endsWith(".local");
             if (local && ServerConfig.isAllowedBaseUrl(url)) {
                 List<LocalLinks.Link> links = LocalLinks.collect(app);
-                if (health(links, LocalLinks.vpnActive(app), url, 3000)) {
+                if (health(links, LocalLinks.vpnActive(app), url, https ? pin : null, 3000)) {
+                    ServerConfig.saveWithPin(app, url, https ? pin : "");
                     ok = remember(app, url);
                     synchronized (LOCK) {
                         cachedUrl = ok;
@@ -133,6 +140,8 @@ public final class ServerDiscovery {
         // Быстрые кандидаты: сохранённый адрес, USB, шлюзы.
         Set<String> quick = new LinkedHashSet<>();
         String saved = ServerConfig.getBaseUrl(context);
+        final String savedUrl = saved == null ? "" : ServerConfig.normalizeBaseUrl(saved);
+        final String savedPin = ServerConfig.getPin(context);
         if (saved != null && !saved.contains("10.0.2.2")) {
             quick.add(ServerConfig.normalizeBaseUrl(saved));
         }
@@ -143,7 +152,7 @@ public final class ServerDiscovery {
             }
         }
         for (String url : quick) {
-            if (health(links, vpn, url, 700)) {
+            if (health(links, vpn, url, url.equals(savedUrl) ? savedPin : null, 700)) {
                 return remember(context, url);
             }
         }
@@ -166,7 +175,7 @@ public final class ServerDiscovery {
         ExecutorService pool = Executors.newFixedThreadPool(48);
         for (String url : targets) {
             pool.execute(() -> {
-                if (found.get() == null && health(links, vpn, url, 450)) {
+                if (found.get() == null && health(links, vpn, url, null, 450)) {
                     found.compareAndSet(null, url);
                 }
             });
@@ -201,7 +210,7 @@ public final class ServerDiscovery {
      * маршрутизацией). Если на телефоне VPN и привязанный запрос не прошёл —
      * повторяем без привязки: часть VPN пропускает локальную сеть только так.
      */
-    static boolean health(List<LocalLinks.Link> links, boolean vpn, String baseUrl, int timeoutMs) {
+    static boolean health(List<LocalLinks.Link> links, boolean vpn, String baseUrl, String pin, int timeoutMs) {
         String host = LocalNet.hostOf(baseUrl);
         LocalLinks.Link link = null;
         for (LocalLinks.Link candidate : links) {
@@ -210,17 +219,18 @@ public final class ServerDiscovery {
                 break;
             }
         }
-        if (probe(link, baseUrl, timeoutMs)) {
+        if (probe(link, baseUrl, pin, timeoutMs)) {
             return true;
         }
-        return vpn && link != null && link.network != null && probe(null, baseUrl, timeoutMs);
+        return vpn && link != null && link.network != null && probe(null, baseUrl, pin, timeoutMs);
     }
 
-    private static boolean probe(LocalLinks.Link link, String baseUrl, int timeoutMs) {
+    private static boolean probe(LocalLinks.Link link, String baseUrl, String pin, int timeoutMs) {
         HttpURLConnection connection = null;
         try {
             URL url = new URL(ServerConfig.normalizeBaseUrl(baseUrl) + "/health");
             connection = LocalLinks.open(link, url);
+            TlsPinning.apply(connection, pin);
             connection.setConnectTimeout(timeoutMs);
             connection.setReadTimeout(timeoutMs + 300);
             connection.setRequestMethod("GET");

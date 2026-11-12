@@ -26,8 +26,10 @@ public class ConnectActivity extends AppCompatActivity {
             openApp();
             return;
         }
+        // pin — отпечаток ключа HTTPS-сервера из QR-кода (sha256/…); без него только http в LAN.
+        String pin = data.getQueryParameter("pin");
         Toast.makeText(this, getString(R.string.connect_checking, url), Toast.LENGTH_SHORT).show();
-        ServerDiscovery.useUrl(this, url, found -> {
+        ServerDiscovery.useUrl(this, url, pin, found -> {
             Toast.makeText(this,
                     found != null ? getString(R.string.connect_saved, found) : getString(R.string.connect_failed, url),
                     Toast.LENGTH_LONG).show();

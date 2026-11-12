@@ -20,5 +20,7 @@ public class DevicesResponse {
         @SerializedName("age_seconds")
         public Integer ageSeconds;
         public boolean online;
+        /** owner | member | null — плата ещё ни за кем не закреплена. */
+        public String role;
     }
 }

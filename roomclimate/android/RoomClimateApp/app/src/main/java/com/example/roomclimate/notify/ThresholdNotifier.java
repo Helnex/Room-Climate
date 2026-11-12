@@ -55,9 +55,16 @@ public final class ThresholdNotifier {
             double max,
             String unit
     ) {
-        ThresholdChecker.Status status = ThresholdChecker.check(value, min, max);
         String key = "alert_status_" + metricKey;
         String previous = ServerConfig.prefs(context).getString(key, "");
+        ThresholdChecker.Status previousStatus = null;
+        try {
+            previousStatus = previous.isEmpty() ? null : ThresholdChecker.Status.valueOf(previous);
+        } catch (IllegalArgumentException ignored) {
+            // старое/битое значение — считаем, что тревоги не было
+        }
+        ThresholdChecker.Status status = ThresholdChecker.checkWithHysteresis(
+                value, min, max, previousStatus, ThresholdChecker.marginFor(metricKey));
         ServerConfig.prefs(context).edit().putString(key, status.name()).apply();
 
         if (!ThresholdChecker.isAlarm(status) || status.name().equals(previous)) {

@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import auth, db, extras
+from app import access, auth, db, extras
 from app.config import settings
 from app.db import utc_now
 from app.errors import translate_http_detail, validation_message
@@ -279,8 +279,9 @@ def post_telemetry(body: TelemetryIn):
     return {"status": "ok", "device_id": body.device_id, "measured_at": measured_at, "stored": stored}
 
 
-@app.get("/telemetry/current", dependencies=[Depends(current_user)])
-def get_current(device_id: str = Query(default="pi-1", max_length=64)):
+@app.get("/telemetry/current")
+def get_current(device_id: str = Query(default="pi-1", max_length=64), user=Depends(current_user)):
+    access.check(device_id, user)
     try:
         r = redis_client()
         current = read_current(r, device_id)
@@ -319,14 +320,16 @@ def get_current(device_id: str = Query(default="pi-1", max_length=64)):
     return {"device_id": device_id, "source": "sqlite", "readings": restored}
 
 
-@app.get("/telemetry/history", dependencies=[Depends(current_user)])
+@app.get("/telemetry/history")
 def get_history(
+    user=Depends(current_user),
     device_id: str = Query(default="pi-1", max_length=64),
     date_from: str | None = Query(default=None, alias="from", max_length=64),
     date_to: str | None = Query(default=None, alias="to", max_length=64),
     type: str | None = Query(default=None, max_length=64),
     max_points: int = Query(default=2000, ge=10, le=20000),
 ):
+    access.check(device_id, user)
     conn = db.connect()
     try:
         # Не больше max_points точек на датчик: длинные периоды усредняются по интервалам.
@@ -347,8 +350,9 @@ def get_history(
 
 # ---------- Пороги ----------
 
-@app.get("/settings", dependencies=[Depends(current_user)])
-def get_settings(device_id: str = Query(default="pi-1", max_length=64)):
+@app.get("/settings")
+def get_settings(device_id: str = Query(default="pi-1", max_length=64), user=Depends(current_user)):
+    access.check(device_id, user)
     conn = db.connect()
     try:
         row = db.get_settings(conn, device_id)
@@ -373,8 +377,13 @@ def get_settings(device_id: str = Query(default="pi-1", max_length=64)):
     }
 
 
-@app.put("/settings", dependencies=[Depends(current_user)])
-def put_settings(body: SettingsIn, device_id: str = Query(default="pi-1", min_length=1, max_length=64)):
+@app.put("/settings")
+def put_settings(
+    body: SettingsIn,
+    device_id: str = Query(default="pi-1", min_length=1, max_length=64),
+    user=Depends(current_user),
+):
+    access.check(device_id, user)
     if body.temp_min >= body.temp_max:
         raise HTTPException(
             status_code=400,

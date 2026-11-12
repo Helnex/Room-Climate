@@ -12,6 +12,15 @@ import urllib.request
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000"
 # Если на сервере задан INGEST_TOKEN, передайте его и сюда (та же переменная окружения).
 INGEST_TOKEN = os.environ.get("INGEST_TOKEN", "")
+if not INGEST_TOKEN:
+    # start.ps1 хранит секрет стенда в server/.env — берём его оттуда, если не задан явно.
+    _env = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if os.path.exists(_env):
+        for _line in open(_env, encoding="utf-8"):
+            if _line.startswith("INGEST_TOKEN="):
+                INGEST_TOKEN = _line.split("=", 1)[1].strip()
+# Своя плата на каждый прогон: pi-1 может быть закреплена за реальным пользователем.
+DEVICE = f"smoke-{int(time.time())}"
 
 
 def req(
@@ -128,13 +137,13 @@ def main() -> None:
     check("вход: «й»/«ё» в разной Unicode-записи совпадают", code == 200, str(ru_login))
 
     # --- Данные доступны только вошедшему пользователю ---
-    code, anon = req("GET", "/telemetry/current?device_id=pi-1")
+    code, anon = req("GET", f"/telemetry/current?device_id={DEVICE}")
     check("без токена /telemetry/current закрыт", code == 401, str(anon))
-    code, anon = req("PUT", "/settings?device_id=pi-1", {"temp_min": -50, "temp_max": 150})
+    code, anon = req("PUT", f"/settings?device_id={DEVICE}", {"temp_min": -50, "temp_max": 150})
     check("без токена пороги менять нельзя", code == 401, str(anon))
 
     payload = {
-        "device_id": "pi-1",
+        "device_id": DEVICE,
         "readings": [
             {"type": "temperature", "value": 24.1, "unit": "C"},
             {"type": "humidity", "value": 41.0, "unit": "%"},
@@ -147,7 +156,7 @@ def main() -> None:
     code, posted = req("POST", "/telemetry", payload, headers=device_headers)
     check("POST /telemetry", code == 200 and posted.get("status") == "ok", str(posted))
 
-    code, current = req("GET", "/telemetry/current?device_id=pi-1", token=token)
+    code, current = req("GET", f"/telemetry/current?device_id={DEVICE}", token=token)
     readings = current.get("readings") or {}
     check(
         "GET /telemetry/current из Redis",
@@ -157,7 +166,7 @@ def main() -> None:
 
     history = {"count": 0}
     for _ in range(15):
-        code, history = req("GET", "/telemetry/history?device_id=pi-1", token=token)
+        code, history = req("GET", f"/telemetry/history?device_id={DEVICE}", token=token)
         if code == 200 and history.get("count", 0) >= 2:
             break
         time.sleep(0.5)
@@ -167,16 +176,16 @@ def main() -> None:
         f"count={history.get('count')}",
     )
 
-    code, bad = req("PUT", "/settings?device_id=pi-1", {"temp_min": 30, "temp_max": 20}, token=token)
+    code, bad = req("PUT", f"/settings?device_id={DEVICE}", {"temp_min": 30, "temp_max": 20}, token=token)
     check("PUT порогов: минимум >= максимума отклоняется", code == 400 and is_russian(bad.get("detail")), str(bad))
 
-    code, nan = req("PUT", "/settings?device_id=pi-1", raw=b'{"temp_min": NaN, "temp_max": Infinity}', token=token)
+    code, nan = req("PUT", f"/settings?device_id={DEVICE}", raw=b'{"temp_min": NaN, "temp_max": Infinity}', token=token)
     check("PUT порогов: NaN/Infinity не роняют сервер", code == 422, str(nan))
 
-    code, saved = req("PUT", "/settings?device_id=pi-1", {"temp_min": 18, "temp_max": 26}, token=token)
+    code, saved = req("PUT", f"/settings?device_id={DEVICE}", {"temp_min": 18, "temp_max": 26}, token=token)
     check("PUT /settings", code == 200 and saved.get("saved") is True, str(saved))
 
-    code, got = req("GET", "/settings?device_id=pi-1", token=token)
+    code, got = req("GET", f"/settings?device_id={DEVICE}", token=token)
     check(
         "GET /settings",
         code == 200
@@ -186,6 +195,33 @@ def main() -> None:
         and got.get("humidity_max") == 70,
         str(got),
     )
+
+    # --- Владелец устройства: после закрепления чужие не видят данные ---
+    other_email = f"other_{stamp}@example.com"
+    code, other = req("POST", "/auth/register", dict(user, email=other_email))
+    other_token = other.get("token")
+    code, _ = req("GET", f"/settings?device_id={DEVICE}", token=other_token)
+    check("незакреплённая плата видна всем вошедшим", code == 200, str(code))
+    code, claimed = req("POST", f"/devices/{DEVICE}/claim", token=token)
+    check("закрепить плату за собой", code == 200 and claimed.get("role") == "owner", str(claimed))
+    code, again = req("POST", f"/devices/{DEVICE}/claim", token=other_token)
+    check("второй владелец не может закрепить чужую плату (409)", code == 409, str(again))
+    code, hidden = req("GET", f"/telemetry/current?device_id={DEVICE}", token=other_token)
+    check("чужая плата скрыта (404)", code == 404 and is_russian(hidden.get("detail")), str(hidden))
+    code, hidden = req("PUT", f"/settings?device_id={DEVICE}", {"temp_min": 0, "temp_max": 99}, token=other_token)
+    check("чужие пороги менять нельзя", code == 404, str(hidden))
+    code, shared = req("POST", f"/devices/{DEVICE}/members", {"email": other_email}, token=token)
+    check("владелец даёт доступ по email", code == 200, str(shared))
+    code, _ = req("GET", f"/telemetry/current?device_id={DEVICE}", token=other_token)
+    check("участник видит данные", code == 200, str(code))
+    code, denied = req("POST", f"/devices/{DEVICE}/members", {"email": email}, token=other_token)
+    check("участник не может раздавать доступ (403)", code == 403, str(denied))
+    code, deleted = req("DELETE", "/auth/me", token=other_token)
+    check("удаление аккаунта", code == 200 and deleted.get("status") == "deleted", str(deleted))
+    code, _ = req("GET", "/auth/me", token=other_token)
+    check("после удаления аккаунта токен недействителен", code == 401, str(code))
+    code, alerts_log = req("GET", f"/alerts?device_id={DEVICE}", token=token)
+    check("журнал тревог доступен владельцу", code == 200 and "alerts" in alerts_log, str(alerts_log))
 
     # --- Выход делает токен недействительным ---
     code, _ = req("POST", "/auth/logout", token=token)

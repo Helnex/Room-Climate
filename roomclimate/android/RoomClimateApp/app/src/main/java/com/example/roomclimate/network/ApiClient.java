@@ -28,11 +28,20 @@ public final class ApiClient {
             OkHttpClient.Builder builder = new OkHttpClient.Builder()
                     .connectTimeout(15, TimeUnit.SECONDS)
                     .readTimeout(15, TimeUnit.SECONDS)
-                    .addInterceptor(chain -> authorize(app, chain));
+                    .addInterceptor(chain -> authorize(app, chain))
+                    // Нет связи — показываем последние полученные данные (офлайн-режим).
+                    .addInterceptor(new OfflineCache(app));
             javax.net.SocketFactory lan = LanSocketFactory.forBaseUrl(app, baseUrl);
             if (lan != null) {
                 // Локальный сервер: ходим строго через Wi‑Fi, а не через мобильные данные.
                 builder.socketFactory(lan);
+            }
+            String pin = ServerConfig.getPin(app);
+            if (baseUrl.startsWith("https://") && TlsPinning.isValidPin(pin)) {
+                // HTTPS стенда с самоподписанным сертификатом: доверяем только «прибитому» ключу.
+                TlsPinning.PinnedTrustManager trust = new TlsPinning.PinnedTrustManager(pin);
+                builder.sslSocketFactory(TlsPinning.socketFactory(trust), trust)
+                        .hostnameVerifier(TlsPinning.PINNED_HOSTS);
             }
             if ((app.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
                 // BASIC пишет в logcat только метод и URL, без тела (пароль туда не попадает).

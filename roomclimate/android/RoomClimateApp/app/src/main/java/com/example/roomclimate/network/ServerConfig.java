@@ -30,9 +30,30 @@ public final class ServerConfig {
     }
 
     public static void save(Context context, String baseUrl, String deviceId) {
+        String url = normalizeBaseUrl(baseUrl);
+        SharedPreferences.Editor editor = prefs(context).edit()
+                .putString(KEY_BASE_URL, url)
+                .putString(KEY_DEVICE_ID, deviceId.trim());
+        if (!url.equals(getBaseUrl(context))) {
+            // Отпечаток ключа относится к конкретному серверу: другой адрес — другой ключ.
+            editor.remove(KEY_PIN);
+        }
+        editor.apply();
+        ApiClient.reset();
+    }
+
+    public static final String KEY_PIN = "tls_pin";
+
+    /** Отпечаток ключа HTTPS-сервера (sha256/…), полученный через QR-код, или "". */
+    public static String getPin(Context context) {
+        return prefs(context).getString(KEY_PIN, "");
+    }
+
+    /** Сохранить адрес вместе с отпечатком ключа (подключение по QR). */
+    public static void saveWithPin(Context context, String baseUrl, String pin) {
         prefs(context).edit()
                 .putString(KEY_BASE_URL, normalizeBaseUrl(baseUrl))
-                .putString(KEY_DEVICE_ID, deviceId.trim())
+                .putString(KEY_PIN, TlsPinning.isValidPin(pin) ? pin : "")
                 .apply();
         ApiClient.reset();
     }

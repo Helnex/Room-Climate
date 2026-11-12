@@ -30,6 +30,8 @@ public class LiveServerIntegrationTest {
     private static final String BASE = "http://127.0.0.1:8000";
     /** Если сервер запущен с INGEST_TOKEN, передайте тот же токен тестам через переменную окружения. */
     private static final String INGEST_TOKEN = System.getenv("INGEST_TOKEN");
+    // Своя плата: pi-1 на стенде может быть закреплена за реальным пользователем.
+    private static final String DEVICE = "itest-" + (System.currentTimeMillis() / 1000);
     private final Gson gson = new Gson();
     private String token;
 
@@ -44,7 +46,7 @@ public class LiveServerIntegrationTest {
         assertNotNull(token);
 
         String payload = "{"
-                + "\"device_id\":\"pi-1\","
+                + "\"device_id\":\"" + DEVICE + "\","
                 + "\"readings\":["
                 + "{\"type\":\"temperature\",\"value\":24.1,\"unit\":\"C\"},"
                 + "{\"type\":\"humidity\",\"value\":41.0,\"unit\":\"%\"}"
@@ -63,10 +65,10 @@ public class LiveServerIntegrationTest {
 
     @Test
     public void currentTelemetryMatchesAppModel() throws Exception {
-        HttpResult result = request("GET", "/telemetry/current?device_id=pi-1", null, token);
+        HttpResult result = request("GET", "/telemetry/current?device_id=" + DEVICE, null, token);
         assertEquals(200, result.code);
         CurrentTelemetryResponse current = gson.fromJson(result.body, CurrentTelemetryResponse.class);
-        assertEquals("pi-1", current.deviceId);
+        assertEquals(DEVICE, current.deviceId);
         assertNotNull(current.reading("temperature"));
         assertNotNull(current.reading("humidity"));
         assertEquals(24.1, current.reading("temperature").value, 0.01);
@@ -75,7 +77,7 @@ public class LiveServerIntegrationTest {
 
     @Test
     public void historyMatchesAppModel() throws Exception {
-        HttpResult result = request("GET", "/telemetry/history?device_id=pi-1", null, token);
+        HttpResult result = request("GET", "/telemetry/history?device_id=" + DEVICE, null, token);
         assertEquals(200, result.code);
         HistoryResponse history = gson.fromJson(result.body, HistoryResponse.class);
         assertTrue(history.count >= 2);
@@ -85,13 +87,13 @@ public class LiveServerIntegrationTest {
 
     @Test
     public void settingsRoundTripMatchesAppModel() throws Exception {
-        HttpResult put = request("PUT", "/settings?device_id=pi-1", "{\"temp_min\":18,\"temp_max\":26}", token);
+        HttpResult put = request("PUT", "/settings?device_id=" + DEVICE, "{\"temp_min\":18,\"temp_max\":26}", token);
         assertEquals(200, put.code);
         SettingsResponse saved = gson.fromJson(put.body, SettingsResponse.class);
         assertTrue(saved.saved);
         assertEquals(18.0, saved.tempMin, 0.01);
 
-        HttpResult get = request("GET", "/settings?device_id=pi-1", null, token);
+        HttpResult get = request("GET", "/settings?device_id=" + DEVICE, null, token);
         SettingsResponse loaded = gson.fromJson(get.body, SettingsResponse.class);
         assertEquals(26.0, loaded.tempMax, 0.01);
     }
@@ -122,8 +124,8 @@ public class LiveServerIntegrationTest {
 
     @Test
     public void dataEndpointsRequireToken() throws Exception {
-        assertEquals(401, request("GET", "/telemetry/current?device_id=pi-1", null, null).code);
-        assertEquals(401, request("GET", "/settings?device_id=pi-1", null, null).code);
+        assertEquals(401, request("GET", "/telemetry/current?device_id=" + DEVICE, null, null).code);
+        assertEquals(401, request("GET", "/settings?device_id=" + DEVICE, null, null).code);
     }
 
     @Test

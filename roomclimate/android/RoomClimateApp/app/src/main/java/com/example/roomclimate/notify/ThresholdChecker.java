@@ -23,6 +23,29 @@ public final class ThresholdChecker {
         return Status.OK;
     }
 
+    /**
+     * Проверка с гистерезисом: если уже была тревога, она снимается только когда значение
+     * вернулось в норму с запасом margin. Иначе при колебаниях у порога (25.9 → 26.1 → 25.9)
+     * уведомления сыпались бы одно за другим.
+     */
+    public static Status checkWithHysteresis(Double value, Double min, Double max, Status previous, double margin) {
+        Status raw = check(value, min, max);
+        if (raw != Status.OK || previous == null) {
+            return raw;
+        }
+        if (previous == Status.ABOVE && value > max - margin) {
+            return Status.ABOVE;
+        }
+        if (previous == Status.BELOW && value < min + margin) {
+            return Status.BELOW;
+        }
+        return Status.OK;
+    }
+
+    public static double marginFor(String metricKey) {
+        return "humidity".equals(metricKey) ? 2.0 : 0.5;
+    }
+
     public static boolean isAlarm(Status status) {
         return status == Status.BELOW || status == Status.ABOVE;
     }

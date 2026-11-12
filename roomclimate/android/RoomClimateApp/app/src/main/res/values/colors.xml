@@ -9,5 +9,7 @@
     <color name="green_light">#E5EEDF</color>
     <color name="green_card">#EFF4EB</color>
     <color name="white">#FFFFFF</color>
+    <!-- Фон карточек, полей и нижнего меню (в тёмной теме — тёмный, см. values-night) -->
+    <color name="surface">#FFFFFF</color>
     <color name="alert_text">#B33A3A</color>
 </resources>

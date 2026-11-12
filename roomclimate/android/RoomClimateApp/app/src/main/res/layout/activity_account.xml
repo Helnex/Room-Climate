@@ -159,7 +159,15 @@
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="24dp" android:text="@string/logout"
                 android:textColor="@color/gray_text" android:textSize="14sp"
-                android:gravity="center" />
+                android:minHeight="48dp" android:gravity="center" />
+
+            <!-- Удалить аккаунт (право на удаление персональных данных, 152-ФЗ) -->
+            <TextView
+                android:id="@+id/tvDeleteAccount"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" android:text="@string/btn_delete_account"
+                android:textColor="@color/alert_text" android:textSize="14sp"
+                android:minHeight="48dp" android:gravity="center" />
 
             <TextView
                 android:layout_width="match_parent" android:layout_height="wrap_content"

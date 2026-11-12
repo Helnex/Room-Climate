@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Тёмная тема: те же имена цветов, система подставляет их при включённой тёмной теме.
+     Контраст текста к фону ≥ 4.5:1 (WCAG AA). «white» оставлен белым — это текст на кнопках. -->
+<resources>
+    <color name="bg_default">#111713</color>
+    <color name="surface">#1C2520</color>
+    <color name="gray_text">#A3AEA5</color>
+    <color name="gray_text_light">#76817A</color>
+    <color name="gray_light">#36423B</color>
+    <color name="dark_text">#E6EEE8</color>
+    <color name="green_primary">#3F8A61</color>
+    <color name="green_light">#2A3A30</color>
+    <color name="green_card">#212D26</color>
+    <color name="alert_text">#F28B82</color>
+</resources>

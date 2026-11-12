@@ -22,9 +22,21 @@ public final class UserPrefs {
                 .putString(KEY_NAME, user.name == null ? "" : user.name)
                 .putString(KEY_SURNAME, user.surname == null ? "" : user.surname)
                 .putString(KEY_EMAIL, user.email == null ? "" : user.email)
-                .putString(KEY_TOKEN, user.token == null ? "" : user.token)
+                .putString(KEY_TOKEN, encryptOrEmpty(user.token))
                 .apply();
+        cachedToken = null;
     }
+
+    /** Токен хранится зашифрованным ключом Android Keystore (см. TokenCrypto). */
+    private static String encryptOrEmpty(String token) {
+        String plain = token == null ? "" : token;
+        String encrypted = TokenCrypto.encrypt(plain);
+        // Keystore сломан на прошивке (редко) — храним как раньше, чтобы вход не ломался.
+        return encrypted == null ? plain : encrypted;
+    }
+
+    // Расшифровка через Keystore небыстрая, а токен нужен каждому запросу — держим в памяти.
+    private static volatile String cachedToken;
 
     public static boolean isLoggedIn(Context context) {
         String token = getToken(context);
@@ -48,7 +60,18 @@ public final class UserPrefs {
     }
 
     public static String getToken(Context context) {
-        return prefs(context).getString(KEY_TOKEN, "");
+        String cached = cachedToken;
+        if (cached != null) {
+            return cached;
+        }
+        String stored = prefs(context).getString(KEY_TOKEN, "");
+        String token = TokenCrypto.decrypt(stored);
+        if (!token.isEmpty() && !TokenCrypto.isEncrypted(stored)) {
+            // Миграция: токен из старой версии лежал открытым текстом — шифруем.
+            prefs(context).edit().putString(KEY_TOKEN, encryptOrEmpty(token)).apply();
+        }
+        cachedToken = token;
+        return token;
     }
 
     public static boolean alertsEnabled(Context context) {
@@ -60,11 +83,16 @@ public final class UserPrefs {
     }
 
     public static void clear(Context context) {
+        cachedToken = null;
         prefs(context).edit().clear().apply();
+        com.example.roomclimate.network.OfflineCache.clear(context);
     }
 
     /** Сбрасывает только данные сессии (токен и профиль), настройки уведомлений остаются. */
     public static void clearSession(Context context) {
+        cachedToken = null;
+        // Кэш офлайн-данных принадлежит пользователю — при выходе удаляем.
+        com.example.roomclimate.network.OfflineCache.clear(context);
         prefs(context).edit()
                 .remove(KEY_ID)
                 .remove(KEY_NAME)

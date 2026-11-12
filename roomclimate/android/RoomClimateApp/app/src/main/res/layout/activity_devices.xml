@@ -56,6 +56,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:accessibilityHeading="true"
                 android:text="@string/insights_title"
                 android:textColor="@color/dark_text"
                 android:textSize="18sp"
@@ -150,6 +151,40 @@
                 android:textColor="@color/white"
                 android:textSize="15sp"
                 android:textStyle="bold"
+                app:backgroundTint="@null" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:accessibilityHeading="true"
+                android:text="@string/alerts_title"
+                android:textColor="@color/dark_text"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvAlerts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_white_card"
+                android:lineSpacingExtra="4dp"
+                android:padding="16dp"
+                android:text="@string/connection_checking_short"
+                android:textColor="@color/dark_text"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btnPush"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_btn_secondary"
+                android:text="@string/btn_push"
+                android:textAllCaps="false"
+                android:textColor="@color/dark_text"
+                android:textSize="15sp"
                 app:backgroundTint="@null" />
 
             <TextView
