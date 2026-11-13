@@ -304,6 +304,9 @@ public class DevicesActivity extends AppCompatActivity {
                     return;
                 }
                 showInsights(response.body());
+                if (periodHours == 24) {
+                    com.example.roomclimate.widget.ClimateWidget.push(DevicesActivity.this, response.body());
+                }
             }
 
             @Override

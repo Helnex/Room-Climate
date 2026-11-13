@@ -83,14 +83,14 @@ public final class UserPrefs {
     }
 
     public static void clear(Context context) {
+        prefs(context).edit().clear().commit();
         cachedToken = null;
-        prefs(context).edit().clear().apply();
         com.example.roomclimate.network.OfflineCache.clear(context);
+        com.example.roomclimate.widget.ClimateWidget.clear(context); // виджет: «Войдите»
     }
 
     /** Сбрасывает только данные сессии (токен и профиль), настройки уведомлений остаются. */
     public static void clearSession(Context context) {
-        cachedToken = null;
         // Кэш офлайн-данных принадлежит пользователю — при выходе удаляем.
         com.example.roomclimate.network.OfflineCache.clear(context);
         prefs(context).edit()
@@ -100,6 +100,9 @@ public final class UserPrefs {
                 .remove(KEY_EMAIL)
                 .remove(KEY_TOKEN)
                 .commit();
+        cachedToken = null;
+        // Только после удаления токена: виджет проверяет вход и иначе снова закэшировал бы токен.
+        com.example.roomclimate.widget.ClimateWidget.clear(context); // виджет: «Войдите»
     }
 
     private static SharedPreferences prefs(Context context) {

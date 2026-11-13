@@ -48,6 +48,19 @@
                 <data android:scheme="roomclimate" android:host="connect" />
             </intent-filter>
         </activity>
+        <!-- Виджет «Климат» на главном экране. exported: систему виджетов вызывает лаунчер;
+             по REFRESH он лишь перечитывает данные с сервера — чужой вызов ничего не раскрывает. -->
+        <receiver
+            android:name=".widget.ClimateWidget"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/climate_widget_info" />
+        </receiver>
         <!-- Экспорт CSV: отдаём файл из кэша другим приложениям через «Поделиться» -->
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -36,13 +36,17 @@ public final class SensorWatch {
         lastCheck = now;
         Context app = context.getApplicationContext();
         String deviceId = ServerConfig.getDeviceId(app);
-        ApiClient.get(app).getInsights(deviceId, 1).enqueue(new Callback<InsightsResponse>() {
+        // 24 ч — тот же ответ подходит и виджету (диапазон за сутки).
+        ApiClient.get(app).getInsights(deviceId, 24).enqueue(new Callback<InsightsResponse>() {
             @Override
             public void onResponse(@NonNull Call<InsightsResponse> call,
                                    @NonNull Response<InsightsResponse> response) {
                 InsightsResponse body = response.isSuccessful() ? response.body() : null;
                 if (body != null && body.ageSeconds != null) {
                     update(app, deviceId, body.online, body.ageSeconds);
+                }
+                if (body != null) {
+                    com.example.roomclimate.widget.ClimateWidget.push(app, body);
                 }
             }
 

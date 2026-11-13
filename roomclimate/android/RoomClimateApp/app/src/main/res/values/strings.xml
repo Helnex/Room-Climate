@@ -186,6 +186,20 @@
     <string name="a11y_nav_devices">Устройства</string>
     <string name="a11y_nav_settings">Настройки</string>
     <string name="a11y_nav_account">Аккаунт</string>
+    <!-- Виджет на главном экране -->
+    <string name="widget_name">Климат</string>
+    <string name="widget_description">Температура, влажность и комфорт в комнате</string>
+    <string name="widget_title_short">Комната</string>
+    <string name="widget_title">RoomClimate · %1$s</string>
+    <string name="widget_refresh">Обновить</string>
+    <string name="widget_signed_out">Войдите в приложение</string>
+    <string name="widget_no_data">Нет данных</string>
+    <string name="widget_silent">Датчик молчит · %1$s</string>
+    <string name="widget_humidity">Влажность %1$s</string>
+    <string name="widget_dew">Точка росы %1$s</string>
+    <string name="widget_range">%1$s … %2$s за сутки</string>
+    <string name="widget_online">● на связи · %1$s</string>
+    <string name="widget_a11y">Климат, плата %1$s: температура %2$s, влажность %3$s, %4$s. Нажмите, чтобы открыть приложение</string>
     <string name="sensor_silent_title">Датчик молчит</string>
     <string name="sensor_silent_text">Плата %1$s не присылает показания %2$s. Проверьте питание и Wi‑Fi платы</string>
     <string name="sensor_back_text">Плата %1$s снова на связи</string>
