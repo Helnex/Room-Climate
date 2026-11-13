@@ -106,7 +106,8 @@ def _deliver(email: str, name: str, code: str) -> None:
         return
     msg = EmailMessage()
     msg["Subject"] = "RoomClimate: код для смены пароля"
-    msg["From"] = os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", "roomclimate@localhost"))
+    # Яндекс принимает письмо, только если отправитель = логин ящика.
+    msg["From"] = os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER", "roomclimate@localhost")
     msg["To"] = email
     msg.set_content(
         f"Здравствуйте, {name}!\n\n"
@@ -115,15 +116,48 @@ def _deliver(email: str, name: str, code: str) -> None:
         f"просто проигнорируйте письмо.\n"
     )
     try:
-        with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", "587")), timeout=10) as smtp:
-            smtp.starttls()
-            user = os.environ.get("SMTP_USER", "")
-            if user:
-                smtp.login(user, os.environ.get("SMTP_PASSWORD", ""))
-            smtp.send_message(msg)
+        send_mail(msg)
     except Exception as exc:  # noqa: BLE001 — ответ клиенту не должен раскрывать сбой почты
         log.warning("письмо с кодом не отправлено: %r", exc)
         print(f"Письмо не отправлено ({exc!r}). Код восстановления для {email}: {code}", flush=True)
+
+
+def send_mail(msg: EmailMessage) -> None:
+    """Отправка через SMTP: порт 465 — сразу SSL (Яндекс, Mail.ru), иначе STARTTLS (587)."""
+    host = os.environ["SMTP_HOST"]
+    port = int(os.environ.get("SMTP_PORT", "465"))
+    user = os.environ.get("SMTP_USER", "")
+    if port == 465:
+        smtp = smtplib.SMTP_SSL(host, port, timeout=15)
+    else:
+        smtp = smtplib.SMTP(host, port, timeout=15)
+        smtp.starttls()
+    with smtp:
+        if user:
+            smtp.login(user, os.environ.get("SMTP_PASSWORD", ""))
+        smtp.send_message(msg)
+
+
+def _send_test(to: str) -> None:
+    """Пробное письмо: docker exec roomclimate-api-1 python -m app.recovery --test адрес@почта"""
+    if not os.environ.get("SMTP_HOST"):
+        raise SystemExit("SMTP_HOST не задан — запустите scripts/set-smtp.ps1")
+    msg = EmailMessage()
+    msg["Subject"] = "RoomClimate: проверка почты"
+    msg["From"] = os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER", "")
+    msg["To"] = to
+    msg.set_content("Почта стенда RoomClimate настроена: коды восстановления пароля будут приходить письмом.\n")
+    send_mail(msg)
+    print(f"Пробное письмо отправлено на {to}")
+
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) == 3 and sys.argv[1] == "--test":
+        _send_test(sys.argv[2])
+    else:
+        raise SystemExit("Использование: python -m app.recovery --test адрес@почта")
 
 
 def build_router() -> APIRouter:

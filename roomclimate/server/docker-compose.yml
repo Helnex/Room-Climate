@@ -97,6 +97,28 @@ services:
       NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
       NTFY_CACHE_DURATION: 24h
 
+  # Доступ из интернета через Cloudflare Tunnel. Включается профилем:
+  # docker compose --profile tunnel up -d  (или start.ps1 -Tunnel / TUNNEL=1 в .env).
+  # - Постоянный туннель со своим доменом: в .env задать CLOUDFLARED_COMMAND (см. .env.example),
+  #   ключи туннеля лежат в server/.cloudflared/ (создаются `cloudflared tunnel login/create`,
+  #   в git не попадают).
+  # - Без этого — временный туннель *.trycloudflare.com: без домена и аккаунта, адрес меняется
+  #   при перезапуске (start.ps1 показывает новый и кладёт в QR).
+  # Наружу открыт только HTTP API (сервис api); ntfy и порт платы остаются в локальной сети.
+  cloudflared:
+    image: cloudflare/cloudflared:2024.11.1
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: ${CLOUDFLARED_COMMAND:-tunnel --no-autoupdate --protocol http2 --url http://api:8000}
+    volumes:
+      - ./.cloudflared:/home/nonroot/.cloudflared:ro
+    # Свой DNS: VPN-клиенты на компьютере (FlClash/Clash) подменяют адреса Cloudflare на
+    # «фейковые» 198.18.x.x, и соединение туннеля рвётся (ошибка 1033 / TLS EOF).
+    dns: ["1.1.1.1", "1.0.0.1"]
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   sqlite_data:
   certs:
