@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Цвета новых экранов из макета (приглушённый текст, фон тревожной плашки). -->
+<resources>
+    <color name="muted_text">#BBC3BA</color>
+    <color name="alert_light">#F8E6E3</color>
+</resources>

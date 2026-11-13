@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Поле с подписью внутри (серая плашка r=16): «Имя  Дина». -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/RC.LabeledField"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="6dp">
+
+    <TextView
+        android:id="@+id/fieldLabel"
+        style="@style/RC.FieldLabel" />
+
+    <EditText
+        android:id="@+id/fieldInput"
+        style="@style/RC.FieldInput"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:importantForAutofill="no" />
+</LinearLayout>

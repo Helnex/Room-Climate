@@ -51,7 +51,7 @@ public final class ShadeCard {
                     .build();
         }
 
-        String temp = WidgetStyle.temperature(d.temperature);
+        String temp = WidgetStyle.temperature(ClimateWidget.shown(context, d.temperature));
         String humidity = WidgetStyle.humidity(d.humidity);
         String line = ClimateWidget.statusLine(context, state, d, humidity, true);
         // Плата молчит — сколько именно, уже сказано в строке статуса; время рядом лишнее.
@@ -73,10 +73,10 @@ public final class ShadeCard {
         big.setTextViewText(R.id.nTileHumidityLabel, context.getString(R.string.widget_tile_humidity));
         big.setTextViewText(R.id.nTileHumidityValue, humidity);
         big.setTextViewText(R.id.nTileDewLabel, context.getString(R.string.widget_tile_dew));
-        big.setTextViewText(R.id.nTileDewValue, d.dewPoint != null ? WidgetStyle.temperature(d.dewPoint) : "—°");
+        big.setTextViewText(R.id.nTileDewValue, d.dewPoint != null ? WidgetStyle.temperature(ClimateWidget.shown(context, d.dewPoint)) : "—°");
         InsightsResponse.Stats t = d.stats != null ? d.stats.get("temperature") : null;
         big.setTextViewText(R.id.nTileRangeLabel, context.getString(R.string.widget_tile_range));
-        big.setTextViewText(R.id.nTileRangeValue, t != null ? WidgetStyle.shortRange(t.min, t.max) : "—");
+        big.setTextViewText(R.id.nTileRangeValue, t != null ? WidgetStyle.shortRange(ClimateWidget.shown(context, t.min), ClimateWidget.shown(context, t.max)) : "—");
         big.setTextViewText(R.id.nAdvice, ClimateWidget.adviceLine(context, state, d));
 
         return b.setStyle(new NotificationCompat.DecoratedCustomViewStyle())

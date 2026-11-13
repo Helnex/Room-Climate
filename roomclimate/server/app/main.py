@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import access, auth, db, extras, proxy, recovery
+from app import access, auth, db, extras, proxy, home, recovery
 from app.config import settings
 from app.db import utc_now
 from app.errors import translate_http_detail, validation_message
@@ -98,9 +98,11 @@ def device_access(x_device_token: str | None = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Неверный токен устройства")
 
 
-def _new_session(conn: sqlite3.Connection, user_id: int) -> str:
+def _new_session(conn: sqlite3.Connection, user_id: int, request: Request | None = None) -> str:
     token = auth.new_token()
     db.create_session(conn, user_id, auth.hash_token(token))
+    if request is not None:
+        home.remember_session_client(conn, auth.hash_token(token), request)  # «История входов»
     return token
 
 
@@ -181,7 +183,7 @@ def register(body: RegisterIn, request: Request):
         if db.get_user_by_email(conn, body.email) is not None:
             raise HTTPException(status_code=409, detail="Пользователь с таким email уже есть")
         user = db.create_user(conn, body.email, auth.hash_password(body.password), body.name, body.surname)
-        token = _new_session(conn, int(user["id"]))
+        token = _new_session(conn, int(user["id"]), request)
         conn.commit()
         return _auth_response(user, token)
     except HTTPException:
@@ -217,7 +219,7 @@ def login(body: LoginIn, request: Request):
             raise HTTPException(status_code=401, detail="Неверный email или пароль")
         _reset_login_failures(email)
         db.delete_expired_sessions(conn, settings.session_ttl_days)
-        token = _new_session(conn, int(user["id"]))
+        token = _new_session(conn, int(user["id"]), request)
         conn.commit()
         return _auth_response(user, token)
     finally:
@@ -429,6 +431,8 @@ def put_settings(
 app.include_router(extras.build_router(current_user))
 # Восстановление пароля по коду — app/recovery.py
 app.include_router(recovery.build_router())
+# Помещения, датчики, профиль, семья, безопасность, помощь — app/home.py
+app.include_router(home.build_router(current_user))
 
 
 @app.get("/")

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строки экранов из макета Figma, которых не было в приложении: помещения, добавление датчика
+     и метрики, профиль, семейный доступ, безопасность, уведомления, единицы, помощь. -->
+<resources>
+    <string name="a11y_back">Назад</string>
+    <string name="request_failed">Не удалось выполнить запрос</string>
+    <string name="save_changes">Сохранить изменения</string>
+    <string name="field_name">Имя</string>
+
+    <!-- Помещения -->
+    <string name="rooms_group">ПОМЕЩЕНИЯ</string>
+    <string name="rooms_empty">Добавить первое помещение</string>
+    <string name="rooms_unassigned">Датчики без помещения</string>
+    <string name="rooms_note">Плату можно перенести в другое помещение: «Добавить датчик» → выбрать плату и помещение.</string>
+    <plurals name="rooms_sensors">
+        <item quantity="one">%d датчик</item>
+        <item quantity="few">%d датчика</item>
+        <item quantity="many">%d датчиков</item>
+        <item quantity="other">%d датчика</item>
+    </plurals>
+    <string name="room_add">Добавить помещение</string>
+    <string name="room_new_title">Новое помещение</string>
+    <string name="room_new_desc">Добавьте помещение в «Мой дом», чтобы следить за его климатом.</string>
+    <string name="room_name_label">Название</string>
+    <string name="room_name_hint">Кабинет</string>
+    <string name="room_name_example">Например: детская, кабинет или балкон</string>
+    <string name="room_create">Создать помещение</string>
+    <string name="room_create_note">После создания можно добавить датчик</string>
+    <string name="room_created">Помещение «%1$s» создано</string>
+    <string name="room_name_empty">Введите название</string>
+    <string name="room_rename">Переименовать</string>
+    <string name="room_delete">Удалить помещение</string>
+    <string name="room_delete_title">Удалить «%1$s»?</string>
+    <string name="room_delete_text">Датчики останутся, просто будут без помещения. Показания не удаляются.</string>
+
+    <!-- Добавление датчика -->
+    <string name="sensor_add_title">Добавление датчика</string>
+    <string name="sensor_add_heading">Добавить датчик</string>
+    <string name="sensor_add_desc">Включите плату: как только она пришлёт первые показания, сервер её найдёт. Выберите её ниже или введите номер.</string>
+    <string name="sensor_board_pick">Выбрать плату</string>
+    <string name="sensor_board_hint">Нажмите, чтобы выбрать найденную плату</string>
+    <string name="sensor_board_title">Плата %1$s</string>
+    <string name="sensor_board_found">Готова к подключению</string>
+    <string name="sensor_ready">готова к подключению</string>
+    <string name="sensor_offline_short">не на связи</string>
+    <string name="sensor_waiting_data">Ждём первые показания</string>
+    <string name="sensor_enter_id">Ввести номер платы</string>
+    <string name="sensor_enter_id_text">Номер платы — значение DEVICE_ID в настройках сборщика на Raspberry Pi.</string>
+    <string name="sensor_enter_id_hint">pi-2</string>
+    <string name="sensor_bad_id">Номер платы: латинские буквы, цифры и символы _ . -</string>
+    <string name="sensor_name">Датчик %1$s</string>
+    <string name="sensor_name_label">Название</string>
+    <string name="sensor_name_hint">Датчик в гостиной</string>
+    <string name="sensor_metric_label">Показатель</string>
+    <string name="sensor_room_label">Помещение</string>
+    <string name="sensor_room_none">Без помещения</string>
+    <string name="sensor_room_pick">Выбор помещения</string>
+    <string name="sensor_add_button">Добавить датчик</string>
+    <string name="sensor_add_note">После добавления датчик станет основным на дашборде</string>
+    <string name="sensor_added">Датчик «%1$s» добавлен</string>
+    <string name="sensor_pick_board_first">Сначала выберите плату</string>
+    <string name="kind_climate">Температура и влажность</string>
+    <string name="kind_co2_soon">Углекислый газ, ppm — нужен датчик CO₂</string>
+    <string name="kind_light_soon">Освещённость, лк — нужен датчик света</string>
+    <string name="kind_motion_soon">Движение — нужен датчик движения</string>
+    <string name="kind_not_available">Такого датчика пока нет в стенде: плата измеряет температуру и влажность.</string>
+
+    <!-- Добавить метрику -->
+    <string name="add_metric">Добавить метрику</string>
+    <string name="add_metric_plus">+ Добавить метрику</string>
+    <string name="metric_add_desc">Выберите показатель для карточки на дашборде.</string>
+    <string name="metric_on_dashboard">Уже на дашборде</string>
+    <string name="metric_temperature">Температура</string>
+    <string name="metric_humidity">Влажность, %</string>
+    <string name="metric_added_from">Добавлено · %1$s</string>
+    <string name="metric_empty_room">В помещении пока нет датчиков</string>
+    <string name="metric_none_title">Новых метрик пока нет</string>
+    <string name="metric_none_text">Все показатели уже добавлены. Подключите ещё один датчик в разделе «Устройства».</string>
+    <string name="metric_none_text_room">Все показатели помещения «%1$s» уже добавлены. Подключите ещё один датчик в разделе «Устройства».</string>
+    <string name="metric_no_duplicates">Температура и влажность не будут дублироваться.</string>
+
+    <!-- Профиль -->
+    <string name="profile_title">Профиль</string>
+    <string name="profile_heading">Редактировать профиль</string>
+    <string name="profile_desc">Измените имя, фамилию и почту, чтобы обновить данные в аккаунте.</string>
+    <string name="profile_note">Новая почта сразу станет логином для входа.</string>
+    <string name="profile_saved">Профиль сохранён</string>
+
+    <!-- Семейный доступ -->
+    <string name="family_title">Семейный доступ</string>
+    <string name="family_heading">Управление доступом</string>
+    <string name="family_desc">Добавьте участников и решите, кто сможет следить за климатом дома.</string>
+    <string name="family_owner">Владелец · полный доступ</string>
+    <string name="family_member">Участник · просмотр и уведомления</string>
+    <string name="family_invite">Пригласить нового участника</string>
+    <string name="family_invite_text">Человек должен быть зарегистрирован в RoomClimate. Он увидит все ваши платы и сможет менять пороги.</string>
+    <string name="family_remove_title">Убрать доступ: %1$s?</string>
+    <string name="family_remove_text">Участник перестанет видеть ваши платы. Его аккаунт не удаляется.</string>
+    <string name="family_remove_ok">Убрать доступ</string>
+    <string name="family_no_devices">Чтобы пригласить семью, закрепите плату за собой: «Устройства» → плата → «Закрепить за мной».</string>
+    <plurals name="family_devices">
+        <item quantity="one">Доступ даётся к %d вашей плате.</item>
+        <item quantity="few">Доступ даётся ко всем %d вашим платам.</item>
+        <item quantity="many">Доступ даётся ко всем %d вашим платам.</item>
+        <item quantity="other">Доступ даётся ко всем %d вашим платам.</item>
+    </plurals>
+
+    <!-- Безопасность -->
+    <string name="security_title">Безопасность</string>
+    <string name="security_heading">Настройки безопасности</string>
+    <string name="security_desc">Управляйте паролем, входами и доступом к истории измерений.</string>
+    <string name="security_password">Сменить пароль</string>
+    <string name="security_password_sub">Обновить пароль для входа</string>
+    <string name="security_password_text">После смены пароля на других устройствах нужно будет войти заново.</string>
+    <string name="security_old_password">Текущий пароль</string>
+    <string name="security_sessions">История входов</string>
+    <string name="security_sessions_sub">Последние устройства и даты входа</string>
+    <string name="security_this_device">этот телефон</string>
+    <string name="security_logout_others">Выйти на других устройствах</string>
+    <string name="security_logged_out_others">Другие входы закрыты</string>
+    <string name="security_history">История измерений</string>
+    <string name="security_history_sub">Выгрузка показаний в CSV — на экране «Устройства»</string>
+    <string name="security_note">Удалить аккаунт и все данные можно в «Аккаунте».</string>
+
+    <!-- Уведомления -->
+    <string name="notify_title">Уведомления</string>
+    <string name="notify_row_sub">Пороги, потеря связи с датчиком</string>
+    <string name="notify_desc">Выберите, о чём сообщать на этом телефоне.</string>
+    <string name="notify_push">Уведомления</string>
+    <string name="notify_push_sub">Сообщения на этом телефоне</string>
+    <string name="notify_group_thresholds">ПОРОГИ ТЕМПЕРАТУРЫ И ВЛАЖНОСТИ</string>
+    <string name="notify_threshold_sub">Ниже или выше ваших порогов</string>
+    <string name="notify_group_sensor">СВЯЗЬ С ДАТЧИКОМ</string>
+    <string name="notify_lost">Потеря связи с датчиком</string>
+    <string name="notify_lost_sub">Если нет данных больше 3 минут</string>
+    <string name="notify_back">Связь восстановлена</string>
+    <string name="notify_back_sub">Когда датчик снова передаёт данные</string>
+    <string name="notify_save">Сохранить настройки</string>
+    <string name="notify_saved">Настройки уведомлений сохранены</string>
+    <string name="notify_note_generic">Пороги задаются в «Настройках».</string>
+    <string name="notify_note">Для платы %1$s пороги: %2$s – %3$s и %4$d – %5$d %%. Изменить — в «Настройках».</string>
+
+    <!-- Единицы -->
+    <string name="units_title">Единицы измерения</string>
+    <string name="units_row_sub">°C или °F</string>
+    <string name="units_desc">Выберите единицы температуры для дашборда, виджетов и устройств.</string>
+    <string name="units_celsius">Градусы Цельсия · °C</string>
+    <string name="units_fahrenheit">Градусы Фаренгейта · °F</string>
+    <string name="units_example">Пример: %1$s</string>
+    <string name="units_percent">Проценты · %</string>
+    <string name="units_percent_fixed">Для влажности единица фиксирована.</string>
+    <string name="units_save">Сохранить выбор</string>
+    <string name="units_saved">Единицы сохранены</string>
+    <string name="units_note">Пороги хранятся в °C и не меняются — пересчёт только при показе.</string>
+
+    <!-- Помощь -->
+    <string name="help_title">Помощь</string>
+    <string name="help_heading">Помощь и обратная связь</string>
+    <string name="help_desc">Напишите нам, если нужно настроить климат дома или решить вопрос с аккаунтом.</string>
+    <string name="help_topic">Тема</string>
+    <string name="help_topic_hint">Настройка уведомлений</string>
+    <string name="help_message">Сообщение</string>
+    <string name="help_message_hint">Опишите, что случилось</string>
+    <string name="help_send">Отправить сообщение</string>
+    <string name="help_fill">Заполните тему и сообщение</string>
+    <string name="help_sent">Сообщение сохранено — администратор стенда его увидит</string>
+    <string name="help_sent_email">Сообщение отправлено</string>
+    <string name="help_note">Ответ придёт на почту вашего аккаунта.</string>
+</resources>

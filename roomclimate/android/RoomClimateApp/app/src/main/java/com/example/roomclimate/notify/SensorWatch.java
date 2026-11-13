@@ -64,6 +64,11 @@ public final class SensorWatch {
             return;
         }
         ServerConfig.prefs(context).edit().putBoolean(key, !online).apply();
+        // «Настройки → Уведомления»: «Потеря связи» / «Связь восстановлена».
+        if (!com.example.roomclimate.ui.AppPrefs.notify(context,
+                online ? com.example.roomclimate.ui.AppPrefs.SENSOR_BACK : com.example.roomclimate.ui.AppPrefs.SENSOR_LOST)) {
+            return;
+        }
         String text = online
                 ? context.getString(R.string.sensor_back_text, deviceId)
                 : context.getString(R.string.sensor_silent_text, deviceId, minutes(context, ageSeconds));

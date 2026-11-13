@@ -79,11 +79,12 @@ def init_db() -> None:
         )
         _ensure_column(conn, "settings", "humidity_min", "REAL NOT NULL DEFAULT 30")
         _ensure_column(conn, "settings", "humidity_max", "REAL NOT NULL DEFAULT 70")
-        from app import access, alerts, recovery  # владельцы, тревоги, восстановление пароля
+        from app import access, alerts, home, recovery  # владельцы, тревоги, «Мой дом», пароль
 
         access.init(conn)
         alerts.init(conn)
         recovery.init(conn)
+        home.init(conn)
         conn.commit()
     finally:
         conn.close()

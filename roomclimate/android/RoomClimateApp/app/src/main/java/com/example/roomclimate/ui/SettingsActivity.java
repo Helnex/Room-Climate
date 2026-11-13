@@ -59,6 +59,11 @@ public class SettingsActivity extends AppCompatActivity {
         btnSaveThresholds.setOnClickListener(v -> saveThresholds());
 
         BottomNav.bind(this, R.id.navSettings);
+        android.widget.LinearLayout sections = findViewById(R.id.settingsSections);
+        Rows.add(sections, R.drawable.ic_bell, R.string.notify_title, R.string.notify_row_sub,
+                v -> startActivity(new android.content.Intent(this, NotificationsActivity.class)));
+        Rows.add(sections, R.drawable.ic_nav_sensor, R.string.units_title, R.string.units_row_sub,
+                v -> startActivity(new android.content.Intent(this, UnitsActivity.class)));
         AppPermissions.request(this);
         loadThresholds();
         testConnection();
