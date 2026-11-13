@@ -186,6 +186,28 @@
     <string name="a11y_nav_devices">Устройства</string>
     <string name="a11y_nav_settings">Настройки</string>
     <string name="a11y_nav_account">Аккаунт</string>
+    <!-- Виджет на главном экране -->
+    <string name="widget_name">Климат</string>
+    <string name="widget_description">Температура, влажность и комфорт в комнате</string>
+    <string name="widget_title_short">Комната</string>
+    <string name="widget_title">RoomClimate · %1$s</string>
+    <string name="widget_refresh">Обновить</string>
+    <string name="widget_signed_out">Войдите в приложение</string>
+    <string name="widget_no_data">Нет данных</string>
+    <string name="widget_silent">Датчик молчит · %1$s</string>
+    <string name="widget_humidity">Влажность %1$s</string>
+    <string name="widget_dew">Точка росы %1$s</string>
+    <string name="widget_range">%1$s … %2$s за сутки</string>
+    <string name="widget_online">● на связи · %1$s</string>
+    <string name="widget_large_name">Климат — большой</string>
+    <string name="widget_large_description">Температура, влажность, точка росы и график за сутки</string>
+    <string name="widget_chart">График температуры за сутки</string>
+    <string name="widget_tile_humidity">Влажность</string>
+    <string name="widget_tile_dew">Точка росы</string>
+    <string name="widget_tile_mold">Плесень</string>
+    <string name="widget_tile_range">За сутки</string>
+    <string name="widget_last_data">Последние показания в %1$s</string>
+    <string name="widget_a11y">Климат, плата %1$s: температура %2$s, влажность %3$s, %4$s. Нажмите, чтобы открыть приложение</string>
     <!-- Пароль: показать/скрыть, восстановление -->
     <string name="password_show">Показать пароль</string>
     <string name="password_hide">Скрыть пароль</string>

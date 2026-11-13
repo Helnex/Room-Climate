@@ -34,7 +34,8 @@ import retrofit2.Response;
  * Постоянное тихое уведомление нужно Android, чтобы проверка шла в фоне.
  */
 public class ClimateMonitorService extends Service {
-    private static final int MONITOR_ID = 42;
+    // Это уведомление — карточка климата в шторке (widget/ShadeCard).
+    private static final int MONITOR_ID = com.example.roomclimate.widget.ShadeCard.NOTIFICATION_ID;
     private static final long POLL_MS = 15_000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -61,7 +62,7 @@ public class ClimateMonitorService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Notification ongoing = buildOngoing();
+        Notification ongoing = com.example.roomclimate.widget.ShadeCard.build(this);
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
@@ -206,17 +207,5 @@ public class ClimateMonitorService extends Service {
     private void schedule() {
         handler.removeCallbacks(pollTask);
         handler.postDelayed(pollTask, POLL_MS);
-    }
-
-    private Notification buildOngoing() {
-        return new NotificationCompat.Builder(this, ThresholdNotifier.MONITOR_CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_menu_compass)
-                .setContentTitle(getString(R.string.monitor_title))
-                .setContentText(getString(R.string.monitor_text))
-                .setOngoing(true)
-                .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setContentIntent(ThresholdNotifier.openAppIntent(this, 1))
-                .build();
     }
 }
