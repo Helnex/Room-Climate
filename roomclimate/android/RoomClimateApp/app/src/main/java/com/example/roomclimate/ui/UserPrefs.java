@@ -90,6 +90,15 @@ public final class UserPrefs {
     }
 
     /** Сбрасывает только данные сессии (токен и профиль), настройки уведомлений остаются. */
+    /** После «Профиль → Сохранить»: имя и почта без смены токена. */
+    public static void updateProfile(Context context, String name, String surname, String email) {
+        prefs(context).edit()
+                .putString(KEY_NAME, name == null ? "" : name)
+                .putString(KEY_SURNAME, surname == null ? "" : surname)
+                .putString(KEY_EMAIL, email == null ? "" : email)
+                .apply();
+    }
+
     public static void clearSession(Context context) {
         // Кэш офлайн-данных принадлежит пользователю — при выходе удаляем.
         com.example.roomclimate.network.OfflineCache.clear(context);

@@ -58,6 +58,8 @@ public class DashboardActivity extends AppCompatActivity {
         tvThresholds = findViewById(R.id.tvThresholds);
 
         findViewById(R.id.btnRefresh).setOnClickListener(v -> refresh());
+        findViewById(R.id.btnAddMetric).setOnClickListener(v ->
+                startActivity(new android.content.Intent(this, AddMetricActivity.class)));
         BottomNav.bind(this, R.id.navDashboard);
         AppPermissions.request(this);
         ClimateMonitorService.start(this);
@@ -158,7 +160,8 @@ public class DashboardActivity extends AppCompatActivity {
         Reading humidity = body.reading("humidity");
 
         if (temperature != null) {
-            tvTemperature.setText(getString(R.string.value_with_unit, temperature.value, Formatters.unit(temperature.unit)));
+            // Единицы — как выбрано в «Настройки → Единицы измерения» (°C / °F).
+            tvTemperature.setText(Units.temperature(this, temperature.value));
             tvUpdated.setText(getString(R.string.updated_at, Formatters.time(temperature.measuredAt)));
             applyThreshold(temperature.value);
         } else {

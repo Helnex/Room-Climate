@@ -77,12 +77,13 @@
                         tools:text="ivan@mail.ru" android:textColor="@color/gray_text" android:textSize="12sp" />
                     <TextView
                         android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="@string/edit_profile" android:textColor="@color/green_primary" android:textSize="12sp" android:layout_marginTop="4dp" />
+                        android:id="@+id/tvEditProfile" android:minHeight="32dp" android:gravity="center_vertical" android:text="@string/edit_profile" android:textColor="@color/green_primary" android:textSize="12sp" android:layout_marginTop="4dp" />
                 </LinearLayout>
             </LinearLayout>
 
             <!-- КАРТОЧКА МОЙ ДОМ -->
             <LinearLayout
+                android:id="@+id/cardMyHome" android:clickable="true" android:focusable="true"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="12dp" android:background="@drawable/bg_home_card"
                 android:padding="16dp" android:gravity="center_vertical" android:orientation="horizontal">
@@ -119,7 +120,7 @@
                 </LinearLayout>
 
                 <!-- Доступ для семьи -->
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="12dp" android:gravity="center_vertical" android:orientation="horizontal">
+                <LinearLayout android:id="@+id/rowFamily" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="12dp" android:gravity="center_vertical" android:orientation="horizontal">
                     <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_circle_green" android:padding="8dp" android:src="@android:drawable/ic_menu_myplaces" app:tint="@color/green_primary" />
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/family_access" android:textColor="@color/dark_text" android:textSize="14sp" />
@@ -129,7 +130,7 @@
                 </LinearLayout>
 
                 <!-- Безопасность -->
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="12dp" android:gravity="center_vertical" android:orientation="horizontal">
+                <LinearLayout android:id="@+id/rowSecurity" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="12dp" android:gravity="center_vertical" android:orientation="horizontal">
                     <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_circle_green" android:padding="8dp" android:src="@android:drawable/ic_secure" app:tint="@color/green_primary" />
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/security_data" android:textColor="@color/dark_text" android:textSize="14sp" />
@@ -139,10 +140,10 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- ПОДДЕРЖКА -->
+            <!-- ПОДДЕРЖКА (строка «Помощь» открывает HelpActivity) -->
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:layout_marginBottom="8dp" android:text="@string/support_title" android:textColor="@color/gray_text" android:textSize="12sp" />
 
-            <LinearLayout
+            <LinearLayout android:id="@+id/rowHelp" android:clickable="true" android:focusable="true"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:background="@drawable/bg_white_card" android:padding="12dp" android:gravity="center_vertical" android:orientation="horizontal">
                 <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_circle_green" android:padding="8dp" android:src="@android:drawable/ic_menu_help" app:tint="@color/green_primary" />

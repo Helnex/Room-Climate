@@ -52,6 +52,57 @@
                 android:layout_marginTop="12dp"
                 android:orientation="vertical" />
 
+            <!-- Из макета: помещения и добавление датчика (заполняет DevicesActivity.loadRooms) -->
+            <TextView
+                android:id="@+id/tvRoomsTitle"
+                style="@style/RC.Text.Group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/rooms_group" />
+
+            <LinearLayout
+                android:id="@+id/roomsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_white_card"
+                android:orientation="vertical"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnAddRoom"
+                    style="@style/RC.Button.Secondary"
+                    android:layout_width="0dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:text="@string/room_add"
+                    app:backgroundTint="@null" />
+
+                <Button
+                    android:id="@+id/btnAddSensorDevices"
+                    style="@style/RC.Button.Primary"
+                    android:layout_width="0dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:text="@string/sensor_add_button"
+                    app:backgroundTint="@null" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/RC.Text.Caption"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/rooms_note" />
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

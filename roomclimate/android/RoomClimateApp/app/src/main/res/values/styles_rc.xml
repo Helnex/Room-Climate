@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Дизайн-система по макету Figma. Шрифт меняется в одном месте — RC.Font (сейчас системный,
+     близкий к Inter из макета). Вес 600 из макета ≈ sans-serif-medium + bold на Android. -->
+<resources>
+    <style name="RC.Font" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <!-- «КЛИМАТ ПОМЕЩЕНИЯ» над заголовком экрана -->
+    <style name="RC.Text.Overline" parent="RC.Font">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/gray_text</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+    <!-- Заголовок экрана: 28, обычный -->
+    <style name="RC.Text.Title" parent="RC.Font">
+        <item name="android:textSize">28sp</item>
+        <item name="android:textColor">@color/dark_text</item>
+    </style>
+    <!-- Подзаголовок секции: 15–16, полужирный -->
+    <style name="RC.Text.Section" parent="RC.Font">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/dark_text</item>
+    </style>
+    <!-- Подпись группы капсом («АКТИВНЫЕ ПОМЕЩЕНИЯ») -->
+    <style name="RC.Text.Group" parent="RC.Text.Overline" />
+    <style name="RC.Text.Body" parent="RC.Font">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/dark_text</item>
+    </style>
+    <style name="RC.Text.BodyMedium" parent="RC.Font">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/dark_text</item>
+    </style>
+    <style name="RC.Text.Secondary" parent="RC.Font">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/gray_text</item>
+    </style>
+    <style name="RC.Text.Caption" parent="RC.Font">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/gray_text</item>
+    </style>
+    <style name="RC.Text.Micro" parent="RC.Font">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/gray_text</item>
+    </style>
+    <style name="RC.Text.Accent" parent="RC.Font">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/green_primary</item>
+    </style>
+    <!-- Крупное значение на карточке: «23,4 °C» -->
+    <style name="RC.Text.Value" parent="RC.Font">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:textColor">@color/dark_text</item>
+    </style>
+
+    <!-- Белая карточка r=20 -->
+    <style name="RC.Card" parent="">
+        <item name="android:background">@drawable/bg_white_card</item>
+        <item name="android:padding">16dp</item>
+    </style>
+
+    <!-- Кнопки высотой 45–50 dp, r=20 -->
+    <style name="RC.Button.Primary" parent="RC.Font">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:background">@drawable/bg_btn_primary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">14sp</item>
+        <item name="backgroundTint">@null</item>
+    </style>
+    <style name="RC.Button.Secondary" parent="RC.Button.Primary">
+        <item name="android:background">@drawable/bg_btn_secondary</item>
+        <item name="android:textColor">@color/green_primary</item>
+    </style>
+
+    <!-- Поле ввода с подписью слева (регистрация, профиль): серая плашка r=16 -->
+    <style name="RC.FieldLabel" parent="RC.Font">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/gray_text</item>
+    </style>
+    <!-- Серая плашка поля r=16 высотой 48 dp: подпись слева, ввод справа -->
+    <style name="RC.LabeledField" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:background">@drawable/rc_field</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+    </style>
+    <!-- Белое поле r=12 с обводкой: подпись слева, значение / выпадающий выбор справа -->
+    <style name="RC.OutlinedField" parent="RC.LabeledField">
+        <item name="android:background">@drawable/rc_field_outline</item>
+    </style>
+    <!-- Значение-«выпадашка» внутри поля: «Гостиная  ▾» -->
+    <style name="RC.FieldPicker" parent="RC.Font">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/dark_text</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:drawableEnd">@drawable/ic_chevron_down</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+    </style>
+    <!-- Экран второго уровня: отступы контента -->
+    <style name="RC.Content" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:paddingBottom">24dp</item>
+    </style>
+    <style name="RC.FieldInput" parent="RC.Font">
+        <item name="android:background">@null</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/dark_text</item>
+        <item name="android:textColorHint">@color/gray_text_light</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:singleLine">true</item>
+    </style>
+
+    <!-- Сегмент «24 часа | Неделя | Месяц | Свой» -->
+    <style name="RC.Segment" parent="RC.Font">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">34dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/gray_text</item>
+    </style>
+
+    <!-- Подписи оси времени под мини-графиком -->
+    <style name="RC.ChartTick" parent="RC.Text.Micro">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <!-- Нижнее меню -->
+    <style name="RC.NavItem" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+    </style>
+    <style name="RC.NavIcon" parent="">
+        <item name="android:layout_width">48dp</item>
+        <item name="android:layout_height">30dp</item>
+        <item name="android:paddingStart">13dp</item>
+        <item name="android:paddingEnd">13dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:importantForAccessibility">no</item>
+        <item name="tint">@color/gray_text</item>
+    </style>
+    <style name="RC.NavLabel" parent="RC.Font">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/gray_text</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <!-- Строка списка: иконка в плашке, заголовок, подпись, стрелка -->
+    <style name="RC.RowTitle" parent="RC.Text.BodyMedium" />
+    <style name="RC.RowSubtitle" parent="RC.Text.Caption" />
+</resources>
