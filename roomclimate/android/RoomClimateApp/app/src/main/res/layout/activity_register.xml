@@ -134,6 +134,32 @@
                 android:textColor="@color/gray_text"
                 android:textSize="12sp" />
 
+            <!-- Код приглашения: нужен только при регистрации вне домашней сети стенда. -->
+            <EditText
+                android:id="@+id/editInviteReg"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_input_field"
+                android:hint="@string/hint_invite_code"
+                android:importantForAutofill="no"
+                android:inputType="textCapCharacters|textNoSuggestions"
+                android:maxLength="64"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:textColor="@color/dark_text"
+                android:textColorHint="@color/gray_text_light"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="6dp"
+                android:text="@string/invite_code_rules"
+                android:textColor="@color/gray_text"
+                android:textSize="12sp" />
+
             <Button
                 android:id="@+id/btnCreateAccount"
                 android:layout_width="match_parent"

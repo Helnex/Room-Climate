@@ -6,6 +6,8 @@ x-app-env: &app-env
   # устройства в Wi-Fi не смогут присылать поддельные показания. Пусто = приём от всех.
   INGEST_TOKEN: ${INGEST_TOKEN:-}
   SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+  # Код приглашения для регистрации из интернета (start.ps1 создаёт сам). Пусто = закрыто.
+  REGISTER_INVITE_CODE: ${REGISTER_INVITE_CODE:-}
   # Через сколько секунд без показаний датчик считается «молчащим».
   STALE_AFTER_SECONDS: ${STALE_AFTER_SECONDS:-180}
   # Тревога, только если выход за порог держится дольше этого времени (защита от дребезга).

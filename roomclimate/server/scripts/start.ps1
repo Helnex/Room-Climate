@@ -10,13 +10,14 @@ $project = "roomclimate"
 # Секреты стенда в server/.env (в git не попадает): создаём случайные, если их ещё нет.
 #  INGEST_TOKEN — пароль платы для POST /telemetry (без него показания может слать кто угодно);
 #  NTFY_TOPIC  — секретное имя темы push-уведомлений.
+function New-InviteCode { $abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; $b = New-Object byte[] 8; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); -join ($b | ForEach-Object { $abc[$_ % 32] }) }
 function New-Secret { $b = New-Object byte[] 24; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); ([Convert]::ToBase64String($b) -replace '[+/=]', '').Substring(0, 30) }
 $envFile = Join-Path $server '.env'
 $envText = if (Test-Path $envFile) { [IO.File]::ReadAllText($envFile) } else { '' }
 $added = @()
-foreach ($name in 'INGEST_TOKEN', 'NTFY_TOPIC') {
+foreach ($name in 'INGEST_TOKEN', 'NTFY_TOPIC', 'REGISTER_INVITE_CODE') {
     if ($envText -notmatch "(?m)^$name=\S+") {
-        $value = if ($name -eq 'NTFY_TOPIC') { "roomclimate-$(New-Secret)" } else { New-Secret }
+        $value = if ($name -eq 'NTFY_TOPIC') { "roomclimate-$(New-Secret)" } elseif ($name -eq 'REGISTER_INVITE_CODE') { New-InviteCode } else { New-Secret }
         $envText = ($envText -replace "(?m)^$name=.*\r?\n?", '').TrimEnd() + "`r`n$name=$value`r`n"
         $added += $name
     }
@@ -26,6 +27,10 @@ if ($added) {
     Write-Host "Созданы секреты в server\.env: $($added -join ', ')" -ForegroundColor Yellow
     if ($added -contains 'INGEST_TOKEN') {
         Write-Host "  Тот же INGEST_TOKEN задайте сборщику на Raspberry Pi (переменная окружения INGEST_TOKEN)." -ForegroundColor Yellow
+    }
+    if ($added -contains 'REGISTER_INVITE_CODE') {
+        $code = [regex]::Match($envText, '(?m)^REGISTER_INVITE_CODE=(\S+)').Groups[1].Value
+        Write-Host "  Код приглашения для регистрации из интернета: $code (дома в Wi-Fi код не нужен)." -ForegroundColor Yellow
     }
 }
 

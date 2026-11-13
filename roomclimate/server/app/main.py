@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import os
 import sqlite3
 from contextlib import asynccontextmanager
 
@@ -166,10 +167,25 @@ def _reset_login_failures(email: str) -> None:
 
 # ---------- Аккаунт ----------
 
+def _check_invite(body: RegisterIn, request: Request) -> None:
+    """Из интернета регистрируются только по коду приглашения (REGISTER_INVITE_CODE в .env),
+    иначе аккаунт мог бы завести любой, кто нашёл адрес. В локальной сети стенда код не нужен."""
+    if not proxy.via_tunnel(request):
+        return
+    expected = os.environ.get("REGISTER_INVITE_CODE", "").strip().upper()
+    if not expected:
+        raise HTTPException(status_code=403, detail="Регистрация из интернета закрыта. "
+                                                    "Зарегистрируйтесь в домашней сети стенда.")
+    given = (body.invite_code or "").strip().upper()
+    if not hmac.compare_digest(given.encode("utf-8"), expected.encode("utf-8")):
+        raise HTTPException(status_code=403, detail="Неверный код приглашения. "
+                                                    "Спросите код у владельца стенда.")
+
+
 @app.post("/auth/register")
 def register(body: RegisterIn, request: Request):
-    # Регистрация открыта и из интернета; от перебора и спама — лимит попыток по IP.
-    _check_ip_rate(request)
+    _check_ip_rate(request)  # заодно ограничивает перебор кода приглашения
+    _check_invite(body, request)
     conn = db.connect()
     try:
         if db.get_user_by_email(conn, body.email) is not None:

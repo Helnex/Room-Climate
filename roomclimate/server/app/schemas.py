@@ -49,6 +49,8 @@ class RegisterIn(BaseModel):
     surname: str = Field(min_length=1, max_length=64)
     email: str = Field(min_length=3, max_length=128)
     password: str = Field(min_length=6, max_length=128)
+    # Код приглашения: нужен только при регистрации из интернета (REGISTER_INVITE_CODE).
+    invite_code: str | None = Field(default=None, max_length=64)
 
     @field_validator("name", "surname")
     @classmethod
