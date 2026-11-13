@@ -15,6 +15,7 @@ FIELD_NAMES = {
     "surname": "Фамилия",
     "email": "Email",
     "password": "Пароль",
+    "code": "Код",
     "device_id": "Идентификатор устройства",
     "readings": "Показания",
     "type": "Тип датчика",
@@ -105,6 +106,8 @@ def _one(error: dict) -> str:
         n = ctx.get("max_length", 0)
         return f"{prefix}не длиннее {n} {_plural_chars(n)}"
     if kind == "string_pattern_mismatch":
+        if label == FIELD_NAMES["code"]:
+            return "Код — это 6 цифр из письма"
         return f"{prefix}допустимы только латинские буквы, цифры и символы _ . -"
     if kind in ("too_short",):
         return f"{prefix}нужно хотя бы одно значение"

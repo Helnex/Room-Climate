@@ -69,6 +69,14 @@ public interface ApiService {
             @Query("hours") int hours
     );
 
+    // ---- Восстановление пароля по коду ----
+
+    @POST("auth/password/forgot")
+    Call<com.google.gson.JsonObject> forgotPassword(@Body com.google.gson.JsonObject body);
+
+    @POST("auth/password/reset")
+    Call<com.google.gson.JsonObject> resetPassword(@Body com.google.gson.JsonObject body);
+
     // ---- Владельцы, тревоги, push, аккаунт ----
 
     @POST("devices/{device_id}/claim")

@@ -46,6 +46,10 @@ public class MainActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btnLogin);
         tvServerStatus = findViewById(R.id.tvServerStatus);
         Button btnGoToRegister = findViewById(R.id.btnGoToRegister);
+        PasswordToggle.attach(editPassword, findViewById(R.id.btnTogglePassword));
+        findViewById(R.id.tvForgotPassword).setOnClickListener(v ->
+                startActivity(new Intent(this, ForgotPasswordActivity.class)
+                        .putExtra(ForgotPasswordActivity.EXTRA_EMAIL, editEmail.getText().toString().trim())));
 
         AppPermissions.request(this);
         discoverServer();

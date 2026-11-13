@@ -186,6 +186,24 @@
     <string name="a11y_nav_devices">Устройства</string>
     <string name="a11y_nav_settings">Настройки</string>
     <string name="a11y_nav_account">Аккаунт</string>
+    <!-- Пароль: показать/скрыть, восстановление -->
+    <string name="password_show">Показать пароль</string>
+    <string name="password_hide">Скрыть пароль</string>
+    <string name="password_rules">Не короче 6 символов</string>
+    <string name="forgot_password">Забыли пароль?</string>
+    <string name="forgot_title">Восстановление пароля</string>
+    <string name="forgot_desc">Введите email, на который зарегистрирован аккаунт, — пришлём код для смены пароля.</string>
+    <string name="forgot_code_sent">Если такой email зарегистрирован, код отправлен на почту. Код действует 15 минут. На учебном стенде без почты код выдаёт администратор стенда.</string>
+    <string name="forgot_failed">Не удалось отправить код</string>
+    <string name="btn_send_code">Получить код</string>
+    <string name="btn_send_code_again">Отправить код ещё раз</string>
+    <string name="hint_reset_code">Код из письма, 6 цифр</string>
+    <string name="hint_new_password">Новый пароль</string>
+    <string name="reset_code_format">Код — это 6 цифр</string>
+    <string name="btn_reset_password">Сменить пароль</string>
+    <string name="reset_failed">Не удалось сменить пароль</string>
+    <string name="reset_done">Пароль изменён. Войдите с новым паролем</string>
+    <string name="back_to_login">Вернуться ко входу</string>
     <string name="sensor_silent_title">Датчик молчит</string>
     <string name="sensor_silent_text">Плата %1$s не присылает показания %2$s. Проверьте питание и Wi‑Fi платы</string>
     <string name="sensor_back_text">Плата %1$s снова на связи</string>
