@@ -14,6 +14,13 @@ public final class ServerConfig {
     public static final String KEY_DEVICE_ID = "device_id";
     public static final String DEFAULT_BASE_URL = "http://10.0.2.2:8000";
     public static final String DEFAULT_DEVICE_ID = "pi-1";
+    /**
+     * Адрес стенда из интернета (постоянный Cloudflare Tunnel). Приложение идёт сюда, только
+     * если сервер не найден в локальной сети. Сертификат настоящий — pinning не нужен.
+     */
+    public static final String PUBLIC_URL = "https://api.climate-room.online";
+    /** Последний найденный адрес в локальной сети — чтобы дома не уходить в интернет. */
+    public static final String KEY_LAST_LOCAL_URL = "last_local_url";
 
     private ServerConfig() {}
 
