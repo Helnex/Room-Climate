@@ -148,13 +148,19 @@ public final class ServerDiscovery {
         List<LocalLinks.Link> links = LocalLinks.collect(context);
         boolean vpn = LocalLinks.vpnActive(context);
 
-        // Быстрые кандидаты: сохранённый адрес, USB, шлюзы.
+        // Быстрые кандидаты: сохранённый адрес, последний локальный, USB, шлюзы.
+        // Адрес из интернета (PUBLIC_URL) — только после локальных: дома сервер ближе.
         Set<String> quick = new LinkedHashSet<>();
         String saved = ServerConfig.getBaseUrl(context);
         final String savedUrl = saved == null ? "" : ServerConfig.normalizeBaseUrl(saved);
         final String savedPin = ServerConfig.getPin(context);
-        if (saved != null && !saved.contains("10.0.2.2")) {
-            quick.add(ServerConfig.normalizeBaseUrl(saved));
+        final boolean savedPublic = savedUrl.equalsIgnoreCase(ServerConfig.PUBLIC_URL);
+        if (saved != null && !saved.contains("10.0.2.2") && !savedPublic) {
+            quick.add(savedUrl);
+        }
+        String lastLocal = ServerConfig.prefs(context).getString(ServerConfig.KEY_LAST_LOCAL_URL, "");
+        if (!lastLocal.isEmpty()) {
+            quick.add(lastLocal);
         }
         quick.add(USB_URL);
         for (LocalLinks.Link link : links) {
@@ -168,6 +174,11 @@ public final class ServerDiscovery {
             }
         }
 
+        // Нет локальной сети (мобильный интернет) или в прошлый раз сервер был через
+        // интернет — сначала пробуем постоянный адрес, не тратя время на перебор подсети.
+        if ((links.isEmpty() || savedPublic) && health(links, vpn, ServerConfig.PUBLIC_URL, null, 6000)) {
+            return remember(context, ServerConfig.PUBLIC_URL);
+        }
         if (links.isEmpty()) {
             lastFailure = vpn ? R.string.server_not_found_vpn : R.string.server_not_found_no_lan;
             return null;
@@ -206,12 +217,18 @@ public final class ServerDiscovery {
         if (url != null) {
             return remember(context, url);
         }
+        if (!savedPublic && health(links, vpn, ServerConfig.PUBLIC_URL, null, 6000)) {
+            return remember(context, ServerConfig.PUBLIC_URL);
+        }
         lastFailure = vpn ? R.string.server_not_found_vpn : R.string.server_not_found;
         return null;
     }
 
     private static String remember(Context context, String url) {
         ServerConfig.saveBaseUrl(context, url);
+        if (url.startsWith("http://") && isLocalUrl(url)) {
+            ServerConfig.prefs(context).edit().putString(ServerConfig.KEY_LAST_LOCAL_URL, url).apply();
+        }
         lastFailure = R.string.server_not_found;
         return url;
     }
