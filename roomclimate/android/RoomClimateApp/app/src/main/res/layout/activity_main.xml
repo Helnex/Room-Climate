@@ -6,15 +6,17 @@
     android:background="@color/bg_default"
     android:fillViewport="true">
 
+    <!-- Форма по центру экрана (fillViewport растягивает до высоты экрана);
+         отступ от строки состояния добавляет RoomClimateApp. -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="center_horizontal"
+        android:gravity="center"
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
-        android:paddingTop="120dp"
-        android:paddingBottom="40dp">
+        android:paddingTop="32dp"
+        android:paddingBottom="32dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -48,6 +50,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_marginTop="16dp"
+            android:autofillHints="emailAddress"
             android:background="@drawable/bg_input_field"
             android:hint="@string/hint_email"
             android:inputType="textEmailAddress"
@@ -57,25 +60,56 @@
             android:textColorHint="@color/gray_text_light"
             android:textSize="14sp" />
 
-        <EditText
-            android:id="@+id/editPassword"
+        <!-- Пароль с кнопкой «показать / скрыть» (PasswordToggle) -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_input_field"
-            android:hint="@string/hint_password"
-            android:inputType="textPassword"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:textColor="@color/dark_text"
-            android:textColorHint="@color/gray_text_light"
-            android:textSize="14sp" />
+            android:layout_marginTop="12dp">
+
+            <EditText
+                android:id="@+id/editPassword"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:autofillHints="password"
+                android:background="@drawable/bg_input_field"
+                android:hint="@string/hint_password"
+                android:inputType="textPassword"
+                android:paddingStart="20dp"
+                android:paddingEnd="52dp"
+                android:textColor="@color/dark_text"
+                android:textColorHint="@color/gray_text_light"
+                android:textSize="14sp" />
+
+            <ImageButton
+                android:id="@+id/btnTogglePassword"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/password_show"
+                android:padding="12dp"
+                android:src="@drawable/ic_eye" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvForgotPassword"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:gravity="center_vertical"
+            android:minHeight="40dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:text="@string/forgot_password"
+            android:textColor="@color/green_primary"
+            android:textSize="13sp" />
 
         <Button
             android:id="@+id/btnLogin"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="8dp"
             app:backgroundTint="@null"
             android:background="@drawable/bg_btn_primary"
             android:text="@string/btn_login"

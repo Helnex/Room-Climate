@@ -22,13 +22,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies for unit tests
-        run: python3 -m pip install -r requirements.txt
+        run: python3 -m pip install -r requirements.txt httpx
 
       - name: Unit tests (insights)
         run: python3 test_insights.py
 
       - name: Unit tests (alerts)
         run: python3 test_alerts.py
+
+      - name: Unit tests (password recovery)
+        run: python3 test_recovery.py
 
       - name: Build and start stack
         run: docker compose up --build -d

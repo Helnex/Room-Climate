@@ -39,6 +39,7 @@ public class RegisterActivity extends AppCompatActivity {
         editSurname = findViewById(R.id.editSurname);
         editEmailReg = findViewById(R.id.editEmailReg);
         editPasswordReg = findViewById(R.id.editPasswordReg);
+        PasswordToggle.attach(editPasswordReg, findViewById(R.id.btnTogglePasswordReg));
         btnCreateAccount = findViewById(R.id.btnCreateAccount);
 
         AppPermissions.request(this);

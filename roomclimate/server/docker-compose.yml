@@ -16,6 +16,12 @@ x-app-env: &app-env
   NTFY_PUBLIC_PORT: "8090"
   TLS_PUBLIC_PORT: "8443"
   CERT_DIR: /certs
+  # Почта для кодов восстановления пароля (необязательно, см. .env.example).
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-}
 
 services:
   redis:
