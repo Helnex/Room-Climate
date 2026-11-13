@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import access, auth, db, extras
+from app import access, auth, db, extras, recovery
 from app.config import settings
 from app.db import utc_now
 from app.errors import translate_http_detail, validation_message
@@ -419,6 +419,8 @@ def put_settings(
 
 # Аналитика, устройства, экспорт CSV, страница подключения — app/extras.py
 app.include_router(extras.build_router(current_user))
+# Восстановление пароля по коду — app/recovery.py
+app.include_router(recovery.build_router())
 
 
 @app.get("/")

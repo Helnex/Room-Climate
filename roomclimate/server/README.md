@@ -101,3 +101,13 @@ powershell -ExecutionPolicy Bypass -File roomclimate\server\scripts\usb-connect.
 | Лимиты | 10 неудачных входов на email за 15 мин, 40 попыток входа/регистрации в минуту с одного IP |
 
 Брандмауэр: `scripts/open-firewall.ps1` (от администратора) открывает порты 8000, 8443 и 8090.
+## Автозапуск стенда на компьютере
+
+```powershell
+powershell -ExecutionPolicy Bypass -File roomclimate\server\scripts\install-autostart.ps1          # установить
+powershell -ExecutionPolicy Bypass -File roomclimate\server\scripts\install-autostart.ps1 -Uninstall  # удалить
+```
+
+Задача «RoomClimate stand» в Планировщике заданий: через минуту после входа в Windows
+запускает `start.ps1` без пересборки (Docker Desktop → контейнеры → проверка `/health` и сети).
+Лог — `server\logs\autostart.log`. Полная проверка стенда — `Docs/Stand-Checklist.md`.

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Метка «отступы от системных панелей уже применены» (RoomClimateApp). -->
+    <item name="insets_applied" type="id" />
+</resources>

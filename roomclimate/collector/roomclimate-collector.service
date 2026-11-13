@@ -1,0 +1,26 @@
+# systemd-служба сборщика RoomClimate на Raspberry Pi.
+# Ставится скриптом install-service.sh (он же подставляет пути и создаёт файл настроек).
+# Запускается при загрузке, ждёт сеть, перезапускается при любом падении.
+[Unit]
+Description=RoomClimate collector (DHT22 -> server)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+WorkingDirectory=@DIR@
+# SERVER_URL, DEVICE_ID, PERIOD_SEC, INGEST_TOKEN — в отдельном файле с правами 600
+# (токен не попадает в вывод `systemctl show` и в репозиторий).
+EnvironmentFile=/etc/roomclimate/collector.env
+ExecStart=/usr/bin/python3 -u @DIR@/collector.py
+Restart=always
+RestartSec=5
+# Ограничения: сборщику не нужны запись в систему и новые привилегии.
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

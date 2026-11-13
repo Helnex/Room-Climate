@@ -77,6 +77,13 @@ public interface ApiService {
             @Query("type") String type,
             @Query("max_points") int maxPoints
     );
+    // ---- Восстановление пароля по коду ----
+
+    @POST("auth/password/forgot")
+    Call<com.google.gson.JsonObject> forgotPassword(@Body com.google.gson.JsonObject body);
+
+    @POST("auth/password/reset")
+    Call<com.google.gson.JsonObject> resetPassword(@Body com.google.gson.JsonObject body);
 
     // ---- Владельцы, тревоги, push, аккаунт ----
 
