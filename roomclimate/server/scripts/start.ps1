@@ -72,7 +72,24 @@ Write-Host "Сервер работает: http://127.0.0.1:$Port" -ForegroundCo
 & (Join-Path $PSScriptRoot 'network-check.ps1') -Port $Port
 
 $tunnelUrl = $null
-if ($useTunnel) {
+# Постоянный туннель со своим доменом: адрес задан в .env (PUBLIC_URL), искать его не нужно.
+$publicUrl = [regex]::Match([IO.File]::ReadAllText($envFile), '(?m)^PUBLIC_URL=(https://\S+)\s*$').Groups[1].Value
+if ($useTunnel -and $publicUrl) {
+    Write-Host ""
+    Write-Host "Жду постоянный туннель Cloudflare..."
+    for ($i = 0; $i -lt 30 -and -not $tunnelUrl; $i++) {
+        try {
+            $h = Invoke-WebRequest -UseBasicParsing "$publicUrl/health" -TimeoutSec 5
+            if ($h.Content -match '"ok"') { $tunnelUrl = $publicUrl.TrimEnd('/') }
+        } catch { Start-Sleep 2 }
+    }
+    if ($tunnelUrl) {
+        Write-Host "Стенд доступен из интернета: $tunnelUrl" -ForegroundColor Green
+        Write-Host "  Адрес постоянный. Регистрация через интернет закрыта: снаружи — только вход."
+    } else {
+        Write-Host "$publicUrl не отвечает. Журнал: docker logs $project-cloudflared-1 --tail 30" -ForegroundColor Red
+    }
+} elseif ($useTunnel) {
     # Временный туннель Cloudflare печатает свой адрес в журнал при каждом запуске.
     Write-Host ""
     Write-Host "Жду адрес туннеля Cloudflare..."
