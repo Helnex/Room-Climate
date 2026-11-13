@@ -84,4 +84,84 @@ public final class WidgetStyle {
     public static boolean isWide(int minWidthDp) {
         return minWidthDp >= 250;
     }
+
+    /** Большой виджет (с графиком) — если ещё и высота от ~220dp (4 ряда). */
+    public static boolean isLarge(int minWidthDp, int minHeightDp) {
+        return isWide(minWidthDp) && minHeightDp >= 220;
+    }
+
+    /** Цвет состояния (ARGB) — тот же, что у фонов виджета; для карточки в шторке. */
+    public static int colorOf(State state) {
+        switch (state) {
+            case COMFORT:
+                return 0xFF2FA36B;
+            case HOT:
+                return 0xFFEC7A2C;
+            case COLD:
+                return 0xFF2F7FD6;
+            case HUMID:
+                return 0xFF5B57D6;
+            case DRY:
+                return 0xFFC98A12;
+            default:
+                return 0xFF6E6E76;
+        }
+    }
+
+    /**
+     * Прореживание ряда для мини-графика: не больше max точек (среднее по корзинам).
+     * Пропуски (null/NaN) отбрасываются.
+     */
+    public static double[] downsample(java.util.List<Double> values, int max) {
+        java.util.List<Double> clean = new java.util.ArrayList<>();
+        if (values != null) {
+            for (Double v : values) {
+                if (v != null && !v.isNaN() && !v.isInfinite()) {
+                    clean.add(v);
+                }
+            }
+        }
+        int n = clean.size();
+        if (n <= max) {
+            double[] out = new double[n];
+            for (int i = 0; i < n; i++) {
+                out[i] = clean.get(i);
+            }
+            return out;
+        }
+        double[] out = new double[max];
+        for (int b = 0; b < max; b++) {
+            int from = (int) ((long) b * n / max);
+            int to = (int) ((long) (b + 1) * n / max);
+            double sum = 0;
+            for (int i = from; i < to; i++) {
+                sum += clean.get(i);
+            }
+            out[b] = sum / Math.max(1, to - from);
+        }
+        return out;
+    }
+
+    /** Точки ряда в координатах картинки w×h с отступом pad: x по индексу, y — min снизу, max сверху. */
+    public static float[] project(double[] values, float w, float h, float pad) {
+        float[] xy = new float[values.length * 2];
+        if (values.length == 0) {
+            return xy;
+        }
+        double min = values[0];
+        double max = values[0];
+        for (double v : values) {
+            min = Math.min(min, v);
+            max = Math.max(max, v);
+        }
+        double span = Math.max(0.5, max - min); // ровная линия не «скачет» на шуме 0,1°
+        double mid = (max + min) / 2;
+        for (int i = 0; i < values.length; i++) {
+            float x = values.length == 1 ? w / 2 : pad + (w - 2 * pad) * i / (values.length - 1);
+            float y = (float) (h / 2 - (values[i] - mid) / span * (h - 2 * pad));
+            xy[2 * i] = x;
+            xy[2 * i + 1] = y;
+        }
+        return xy;
+    }
 }

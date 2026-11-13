@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Плитка большого виджета: полупрозрачная «стеклянная» карточка поверх цветного фона. -->
+    <style name="WidgetTile">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@drawable/widget_tile</item>
+        <item name="android:paddingStart">9dp</item>
+        <item name="android:paddingEnd">6dp</item>
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">7dp</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:lineSpacingExtra">1dp</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+</resources>

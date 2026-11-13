@@ -199,6 +199,13 @@
     <string name="widget_dew">Точка росы %1$s</string>
     <string name="widget_range">%1$s … %2$s за сутки</string>
     <string name="widget_online">● на связи · %1$s</string>
+    <string name="widget_large_name">Климат — большой</string>
+    <string name="widget_large_description">Температура, влажность, точка росы и график за сутки</string>
+    <string name="widget_chart">График температуры за сутки</string>
+    <string name="widget_tile_humidity">Влажность</string>
+    <string name="widget_tile_dew">Точка росы</string>
+    <string name="widget_tile_mold">Плесень</string>
+    <string name="widget_tile_range">За сутки</string>
     <string name="widget_a11y">Климат, плата %1$s: температура %2$s, влажность %3$s, %4$s. Нажмите, чтобы открыть приложение</string>
     <string name="sensor_silent_title">Датчик молчит</string>
     <string name="sensor_silent_text">Плата %1$s не присылает показания %2$s. Проверьте питание и Wi‑Fi платы</string>

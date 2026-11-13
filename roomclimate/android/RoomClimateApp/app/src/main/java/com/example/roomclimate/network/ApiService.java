@@ -69,6 +69,15 @@ public interface ApiService {
             @Query("hours") int hours
     );
 
+    /** История с ограничением числа точек (сервер усредняет) — для мини-графика виджета. */
+    @GET("telemetry/history")
+    Call<HistoryResponse> getHistoryCompact(
+            @Query("device_id") String deviceId,
+            @Query("from") String from,
+            @Query("type") String type,
+            @Query("max_points") int maxPoints
+    );
+
     // ---- Владельцы, тревоги, push, аккаунт ----
 
     @POST("devices/{device_id}/claim")
