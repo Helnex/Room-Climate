@@ -58,6 +58,11 @@ public final class WidgetStyle {
         return String.format(Locale.ROOT, "%.1f", value).replace('.', ',') + "°";
     }
 
+    /** Короткий диапазон для плитки: 19.1 и 24.04 -> "19…24°" (в узкую плитку целиком). */
+    public static String shortRange(double min, double max) {
+        return Math.round(min) + "…" + Math.round(max) + "°";
+    }
+
     /** 41.6 -> "42%". */
     public static String humidity(Double value) {
         if (value == null || value.isNaN() || value.isInfinite()) {

@@ -8,13 +8,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.SpannableStringBuilder;
-import android.text.Spanned;
-import android.text.style.RelativeSizeSpan;
-import android.text.style.StyleSpan;
 import android.util.SizeF;
 import android.widget.RemoteViews;
 
@@ -309,12 +304,14 @@ public class ClimateWidget extends AppWidgetProvider {
                 rv.setTextViewText(R.id.wHumidity, show ? context.getString(R.string.widget_humidity, humidity) : "");
                 rv.setTextViewText(R.id.wDew, show && d.dewPoint != null ? context.getString(R.string.widget_dew, dew) : "");
             } else {
-                rv.setTextViewText(R.id.wTileHumidity, tile(context.getString(R.string.widget_tile_humidity), humidity));
-                rv.setTextViewText(R.id.wTileDew, tile(context.getString(R.string.widget_tile_dew), dew));
+                rv.setTextViewText(R.id.wTileHumidityLabel, context.getString(R.string.widget_tile_humidity));
+                rv.setTextViewText(R.id.wTileHumidityValue, humidity);
+                rv.setTextViewText(R.id.wTileDewLabel, context.getString(R.string.widget_tile_dew));
+                rv.setTextViewText(R.id.wTileDewValue, dew);
                 String mold = show && d.moldRisk != null && d.moldRisk.label != null ? d.moldRisk.label : "—";
-                rv.setTextViewText(R.id.wTileMold, tile(context.getString(R.string.widget_tile_mold), mold));
-                String advice = show && d.advice != null && !d.advice.isEmpty() ? d.advice.get(0) : "";
-                rv.setTextViewText(R.id.wAdvice, advice);
+                rv.setTextViewText(R.id.wTileMoldLabel, context.getString(R.string.widget_tile_mold));
+                rv.setTextViewText(R.id.wTileMoldValue, mold);
+                rv.setTextViewText(R.id.wAdvice, show ? adviceLine(context, state, d) : "");
                 double[] values = show ? chartValues(context) : new double[0];
                 if (values.length >= 2) {
                     rv.setImageViewBitmap(R.id.wChart, WidgetChart.render(values, 640, 200));
@@ -345,14 +342,16 @@ public class ClimateWidget extends AppWidgetProvider {
         }
     }
 
-    /** Плитка: мелкая подпись и крупное значение на второй строке. */
-    private static CharSequence tile(String label, String value) {
-        SpannableStringBuilder sb = new SpannableStringBuilder(label).append('\n');
-        int start = sb.length();
-        sb.append(value);
-        sb.setSpan(new RelativeSizeSpan(1.35f), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        sb.setSpan(new StyleSpan(Typeface.BOLD), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return sb;
+    /**
+     * Строка совета. Если плата молчит, совет по старым цифрам вводит в заблуждение
+     * («Климат в норме» при данных 13-часовой давности) — вместо него время последних данных.
+     */
+    static String adviceLine(Context context, WidgetStyle.State state, InsightsResponse d) {
+        if (state == WidgetStyle.State.SILENT) {
+            String time = localTime(d.lastSeen);
+            return time.isEmpty() ? "" : context.getString(R.string.widget_last_data, time);
+        }
+        return d.advice != null && !d.advice.isEmpty() ? d.advice.get(0) : "";
     }
 
     static String updatedText(Context context, InsightsResponse d, WidgetStyle.State state) {

@@ -27,6 +27,7 @@ public class WidgetStyleTest {
         assertEquals("-2,0°", WidgetStyle.temperature(-2.0));
         assertEquals("—°", WidgetStyle.temperature(null));
         assertEquals("42%", WidgetStyle.humidity(41.6));
+        assertEquals("19…24°", WidgetStyle.shortRange(19.1, 24.04));
         assertEquals("—%", WidgetStyle.humidity(Double.NaN));
     }
 

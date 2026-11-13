@@ -84,21 +84,25 @@
         android:layout_marginTop="10dp"
         android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/wTileHumidity"
+        <LinearLayout
             style="@style/WidgetTile"
-            android:layout_marginEnd="4dp" />
-
-        <TextView
-            android:id="@+id/wTileDew"
+            android:layout_marginEnd="4dp">
+            <TextView android:id="@+id/wTileHumidityLabel" style="@style/WidgetTileLabel" />
+            <TextView android:id="@+id/wTileHumidityValue" style="@style/WidgetTileValue" />
+        </LinearLayout>
+        <LinearLayout
             style="@style/WidgetTile"
             android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp" />
-
-        <TextView
-            android:id="@+id/wTileMold"
+            android:layout_marginEnd="4dp">
+            <TextView android:id="@+id/wTileDewLabel" style="@style/WidgetTileLabel" />
+            <TextView android:id="@+id/wTileDewValue" style="@style/WidgetTileValue" />
+        </LinearLayout>
+        <LinearLayout
             style="@style/WidgetTile"
-            android:layout_marginStart="4dp" />
+            android:layout_marginStart="4dp">
+            <TextView android:id="@+id/wTileMoldLabel" style="@style/WidgetTileLabel" />
+            <TextView android:id="@+id/wTileMoldValue" style="@style/WidgetTileValue" />
+        </LinearLayout>
     </LinearLayout>
 
     <ImageView

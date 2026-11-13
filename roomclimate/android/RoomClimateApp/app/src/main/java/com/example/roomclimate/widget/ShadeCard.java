@@ -3,12 +3,7 @@ package com.example.roomclimate.widget;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.graphics.Typeface;
 import android.service.notification.StatusBarNotification;
-import android.text.SpannableStringBuilder;
-import android.text.Spanned;
-import android.text.style.RelativeSizeSpan;
-import android.text.style.StyleSpan;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
@@ -59,7 +54,8 @@ public final class ShadeCard {
         String temp = WidgetStyle.temperature(d.temperature);
         String humidity = WidgetStyle.humidity(d.humidity);
         String line = ClimateWidget.statusLine(context, state, d, humidity, true);
-        String time = ClimateWidget.localTime(d.lastSeen);
+        // Плата молчит — сколько именно, уже сказано в строке статуса; время рядом лишнее.
+        String time = state == WidgetStyle.State.SILENT ? "" : ClimateWidget.localTime(d.lastSeen);
         int color = WidgetStyle.colorOf(state);
         int bg = backgroundOf(state);
 
@@ -74,13 +70,14 @@ public final class ShadeCard {
         big.setTextViewText(R.id.nTemp, temp);
         big.setTextViewText(R.id.nLine, ClimateWidget.statusLine(context, state, d, humidity, false));
         big.setTextViewText(R.id.nTime, time);
-        big.setTextViewText(R.id.nTileHumidity, tile(context.getString(R.string.widget_tile_humidity), humidity));
-        big.setTextViewText(R.id.nTileDew, tile(context.getString(R.string.widget_tile_dew),
-                d.dewPoint != null ? WidgetStyle.temperature(d.dewPoint) : "—°"));
+        big.setTextViewText(R.id.nTileHumidityLabel, context.getString(R.string.widget_tile_humidity));
+        big.setTextViewText(R.id.nTileHumidityValue, humidity);
+        big.setTextViewText(R.id.nTileDewLabel, context.getString(R.string.widget_tile_dew));
+        big.setTextViewText(R.id.nTileDewValue, d.dewPoint != null ? WidgetStyle.temperature(d.dewPoint) : "—°");
         InsightsResponse.Stats t = d.stats != null ? d.stats.get("temperature") : null;
-        big.setTextViewText(R.id.nTileRange, tile(context.getString(R.string.widget_tile_range),
-                t != null ? WidgetStyle.temperature(t.min) + "…" + WidgetStyle.temperature(t.max) : "—"));
-        big.setTextViewText(R.id.nAdvice, d.advice != null && !d.advice.isEmpty() ? d.advice.get(0) : "");
+        big.setTextViewText(R.id.nTileRangeLabel, context.getString(R.string.widget_tile_range));
+        big.setTextViewText(R.id.nTileRangeValue, t != null ? WidgetStyle.shortRange(t.min, t.max) : "—");
+        big.setTextViewText(R.id.nAdvice, ClimateWidget.adviceLine(context, state, d));
 
         return b.setStyle(new NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomContentView(small)
@@ -118,14 +115,6 @@ public final class ShadeCard {
         return false;
     }
 
-    private static CharSequence tile(String label, String value) {
-        SpannableStringBuilder sb = new SpannableStringBuilder(label).append('\n');
-        int start = sb.length();
-        sb.append(value);
-        sb.setSpan(new RelativeSizeSpan(1.3f), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        sb.setSpan(new StyleSpan(Typeface.BOLD), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return sb;
-    }
 
     private static int backgroundOf(WidgetStyle.State state) {
         switch (state) {
