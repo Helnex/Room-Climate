@@ -439,7 +439,7 @@ def build_router(current_user) -> APIRouter:
 <p class="muted">Если кнопка не сработала: <a href="{html.escape(scheme_url)}">запасная ссылка</a>
 или впишите адрес <code>{html.escape(base)}</code> в «Настройки → Подключение к серверу».</p>
 <p class="muted">Раз эта страница открылась на телефоне — сеть между телефоном и компьютером работает.</p>
-<p class="muted">{"Подключение из интернета через Cloudflare Tunnel (HTTPS). Регистрация — только в локальной сети стенда." if remote
+<p class="muted">{"Подключение из интернета (HTTPS)." if remote
  else "Шифрование: HTTPS, отпечаток ключа <code>" + html.escape(pin) + "</code>" if pin
  else "HTTPS-сервис не запущен — приложение подключится без шифрования (только в локальной сети)."}</p>
 </body></html>"""

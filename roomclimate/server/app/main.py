@@ -168,13 +168,7 @@ def _reset_login_failures(email: str) -> None:
 
 @app.post("/auth/register")
 def register(body: RegisterIn, request: Request):
-    if proxy.via_tunnel(request):
-        # Стенд открыт в интернет: иначе зарегистрироваться мог бы кто угодно.
-        raise HTTPException(
-            status_code=403,
-            detail="Регистрация доступна только в локальной сети стенда. "
-                   "Зарегистрируйтесь дома, а из интернета входите.",
-        )
+    # Регистрация открыта и из интернета; от перебора и спама — лимит попыток по IP.
     _check_ip_rate(request)
     conn = db.connect()
     try:

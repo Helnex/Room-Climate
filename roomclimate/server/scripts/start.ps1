@@ -52,6 +52,9 @@ if ($busy) {
 $useTunnel = $Tunnel -or ([IO.File]::ReadAllText($envFile) -match '(?m)^TUNNEL=1\s*$')
 $composeArgs = @('compose', '-p', $project, '--project-directory', $server, '-f', (Join-Path $server 'docker-compose.yml'))
 if ($useTunnel) { $composeArgs += @('--profile', 'tunnel') }
+# Вход из интернета напрямую (белый IP, Caddy + DDNS): COMPOSE_PROFILES=public в server\.env.
+$usePublic = [IO.File]::ReadAllText($envFile) -match '(?m)^COMPOSE_PROFILES=.*public'
+if ($usePublic) { $composeArgs += @('--profile', 'public') }
 $composeArgs += @('up', '-d')
 if (-not $NoBuild) { $composeArgs += '--build' }
 & docker @composeArgs
@@ -74,9 +77,9 @@ Write-Host "Сервер работает: http://127.0.0.1:$Port" -ForegroundCo
 $tunnelUrl = $null
 # Постоянный туннель со своим доменом: адрес задан в .env (PUBLIC_URL), искать его не нужно.
 $publicUrl = [regex]::Match([IO.File]::ReadAllText($envFile), '(?m)^PUBLIC_URL=(https://\S+)\s*$').Groups[1].Value
-if ($useTunnel -and $publicUrl) {
+if (($useTunnel -or $usePublic) -and $publicUrl) {
     Write-Host ""
-    Write-Host "Жду постоянный туннель Cloudflare..."
+    Write-Host "Проверяю вход из интернета ($publicUrl)..."
     for ($i = 0; $i -lt 30 -and -not $tunnelUrl; $i++) {
         try {
             $h = Invoke-WebRequest -UseBasicParsing "$publicUrl/health" -TimeoutSec 5
@@ -85,9 +88,10 @@ if ($useTunnel -and $publicUrl) {
     }
     if ($tunnelUrl) {
         Write-Host "Стенд доступен из интернета: $tunnelUrl" -ForegroundColor Green
-        Write-Host "  Адрес постоянный. Регистрация через интернет закрыта: снаружи — только вход."
+        Write-Host "  Адрес постоянный."
     } else {
-        Write-Host "$publicUrl не отвечает. Журнал: docker logs $project-cloudflared-1 --tail 30" -ForegroundColor Red
+        $svc = if ($usePublic) { 'caddy' } else { 'cloudflared' }
+        Write-Host "$publicUrl не отвечает. Журнал: docker logs $project-$svc-1 --tail 30" -ForegroundColor Red
     }
 } elseif ($useTunnel) {
     # Временный туннель Cloudflare печатает свой адрес в журнал при каждом запуске.
@@ -104,7 +108,6 @@ if ($useTunnel -and $publicUrl) {
         Set-Content -Path (Join-Path $server 'logs\tunnel-url.txt') -Value $tunnelUrl -Encoding utf8
         Write-Host "Стенд доступен из интернета: $tunnelUrl" -ForegroundColor Green
         Write-Host "  Адрес меняется при каждом перезапуске — подключайте телефон по QR со страницы $tunnelUrl/connect"
-        Write-Host "  Регистрация через интернет закрыта: регистрируйтесь в локальной сети, снаружи — только вход."
     } else {
         Write-Host "Туннель не поднялся. Журнал: docker logs $project-cloudflared-1 --tail 30" -ForegroundColor Red
     }
