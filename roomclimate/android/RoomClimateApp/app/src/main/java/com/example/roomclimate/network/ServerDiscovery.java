@@ -83,25 +83,36 @@ public final class ServerDiscovery {
      * Проверить конкретный адрес (из QR-кода страницы /connect) и, если сервер отвечает,
      * сохранить его. Callback получает адрес или null.
      */
-    public static void useUrl(Context context, String rawUrl, String pin, Callback callback) {
+    /** Адрес в локальной сети (частный IP, 127.x, *.local)? */
+    public static boolean isLocalUrl(String rawUrl) {
+        String host = LocalNet.hostOf(ServerConfig.normalizeBaseUrl(rawUrl)).toLowerCase(java.util.Locale.ROOT);
+        return LocalNet.isPrivate(host) || host.startsWith("127.") || host.endsWith(".local");
+    }
+
+    /**
+     * Проверить конкретный адрес (из QR-кода страницы /connect) и, если сервер отвечает,
+     * сохранить его. Callback получает адрес или null.
+     *
+     * Локальный адрес: http, либо https с отпечатком ключа (самоподписанный сертификат стенда).
+     * Внешний адрес (Cloudflare Tunnel): только https с обычной проверкой сертификата и только
+     * если пользователь подтвердил его в диалоге (remoteConfirmed) — ссылку roomclimate://
+     * может открыть любой сайт, и без подтверждения он подменил бы сервер.
+     */
+    public static void useUrl(Context context, String rawUrl, String pin, boolean remoteConfirmed, Callback callback) {
         Context app = context.getApplicationContext();
         String url = ServerConfig.normalizeBaseUrl(rawUrl);
         new Thread(() -> {
             String ok = null;
-            // HTTPS стенда принимаем только вместе с корректным отпечатком ключа.
             boolean https = url.startsWith("https://");
-            if (https && !TlsPinning.isValidPin(pin)) {
-                deliver(callback, null);
-                return;
-            }
-            String host = LocalNet.hostOf(url).toLowerCase(java.util.Locale.ROOT);
-            // Только локальные адреса: ссылку roomclimate:// может открыть любой сайт, и без этой
-            // проверки он подменил бы сервер — пароль при входе ушёл бы чужому серверу.
-            boolean local = LocalNet.isPrivate(host) || host.startsWith("127.") || host.endsWith(".local");
-            if (local && ServerConfig.isAllowedBaseUrl(url)) {
+            boolean local = isLocalUrl(url);
+            boolean pinned = https && local;
+            boolean allowed = local
+                    ? ServerConfig.isAllowedBaseUrl(url) && (!https || TlsPinning.isValidPin(pin))
+                    : https && remoteConfirmed;
+            if (allowed) {
                 List<LocalLinks.Link> links = LocalLinks.collect(app);
-                if (health(links, LocalLinks.vpnActive(app), url, https ? pin : null, 3000)) {
-                    ServerConfig.saveWithPin(app, url, https ? pin : "");
+                if (health(links, LocalLinks.vpnActive(app), url, pinned ? pin : null, 5000)) {
+                    ServerConfig.saveWithPin(app, url, pinned ? pin : "");
                     ok = remember(app, url);
                     synchronized (LOCK) {
                         cachedUrl = ok;

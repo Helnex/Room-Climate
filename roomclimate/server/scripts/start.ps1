@@ -1,7 +1,8 @@
 ﻿# Запуск стенда одной командой: Docker Desktop -> сервер -> проверка -> страница подключения.
 #   powershell -ExecutionPolicy Bypass -File roomclimate\server\scripts\start.ps1
-# Ключи: -NoBuild (не пересобирать образ), -NoBrowser (не открывать страницу подключения)
-param([switch]$NoBuild, [switch]$NoBrowser, [int]$Port = 8000)
+# Ключи: -NoBuild (не пересобирать образ), -NoBrowser (не открывать страницу подключения),
+#        -Tunnel (доступ из интернета через Cloudflare; или TUNNEL=1 в server\.env)
+param([switch]$NoBuild, [switch]$NoBrowser, [switch]$Tunnel, [int]$Port = 8000)
 
 $server = Split-Path $PSScriptRoot -Parent
 $project = "roomclimate"
@@ -47,7 +48,11 @@ if ($busy) {
     exit 1
 }
 
-$composeArgs = @('compose', '-p', $project, '--project-directory', $server, '-f', (Join-Path $server 'docker-compose.yml'), 'up', '-d')
+# Туннель в интернет: ключ -Tunnel или TUNNEL=1 в server\.env (тогда и при автозапуске).
+$useTunnel = $Tunnel -or ([IO.File]::ReadAllText($envFile) -match '(?m)^TUNNEL=1\s*$')
+$composeArgs = @('compose', '-p', $project, '--project-directory', $server, '-f', (Join-Path $server 'docker-compose.yml'))
+if ($useTunnel) { $composeArgs += @('--profile', 'tunnel') }
+$composeArgs += @('up', '-d')
 if (-not $NoBuild) { $composeArgs += '--build' }
 & docker @composeArgs
 if ($LASTEXITCODE -ne 0) { Write-Host "docker compose завершился с ошибкой" -ForegroundColor Red; exit 1 }
@@ -66,7 +71,32 @@ Write-Host "Сервер работает: http://127.0.0.1:$Port" -ForegroundCo
 
 & (Join-Path $PSScriptRoot 'network-check.ps1') -Port $Port
 
-if (-not $NoBrowser) {
+$tunnelUrl = $null
+if ($useTunnel) {
+    # Временный туннель Cloudflare печатает свой адрес в журнал при каждом запуске.
+    Write-Host ""
+    Write-Host "Жду адрес туннеля Cloudflare..."
+    for ($i = 0; $i -lt 30 -and -not $tunnelUrl; $i++) {
+        $log = docker logs "$project-cloudflared-1" 2>&1 | ForEach-Object { "$_" }
+        $found = $log | Select-String -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' -AllMatches |
+            ForEach-Object { $_.Matches.Value } | Select-Object -Last 1
+        if ($found) { $tunnelUrl = $found } else { Start-Sleep 2 }
+    }
+    if ($tunnelUrl) {
+        New-Item -ItemType Directory -Force (Join-Path $server 'logs') | Out-Null
+        Set-Content -Path (Join-Path $server 'logs\tunnel-url.txt') -Value $tunnelUrl -Encoding utf8
+        Write-Host "Стенд доступен из интернета: $tunnelUrl" -ForegroundColor Green
+        Write-Host "  Адрес меняется при каждом перезапуске — подключайте телефон по QR со страницы $tunnelUrl/connect"
+        Write-Host "  Регистрация через интернет закрыта: регистрируйтесь в локальной сети, снаружи — только вход."
+    } else {
+        Write-Host "Туннель не поднялся. Журнал: docker logs $project-cloudflared-1 --tail 30" -ForegroundColor Red
+    }
+}
+
+if (-not $NoBrowser -and $tunnelUrl) {
+    Write-Host "Открываю страницу подключения через интернет: $tunnelUrl/connect"
+    Start-Process "$tunnelUrl/connect"
+} elseif (-not $NoBrowser) {
     $lanIp = Get-NetIPConfiguration | Where-Object {
         $_.IPv4Address -and $_.NetAdapter.Status -eq 'Up' -and $_.IPv4DefaultGateway -and
         $_.InterfaceDescription -notmatch 'VirtualBox|Hyper-V|VMware|TAP-|Wintun|WireGuard|Meta Tunnel|Clash|OpenVPN|TUN'

@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import access, auth, db, extras, recovery
+from app import access, auth, db, extras, proxy, recovery
 from app.config import settings
 from app.db import utc_now
 from app.errors import translate_http_detail, validation_message
@@ -143,7 +143,8 @@ IP_AUTH_WINDOW_SECONDS = 60  # за минуту с одного адреса
 def _check_ip_rate(request: Request) -> None:
     """Лимит по IP: лимит по email не спасает от перебора по разным адресам, а каждая
     попытка — это 600 000 итераций PBKDF2 (≈0,3 с процессора)."""
-    ip = request.client.host if request.client else "unknown"
+    # Через туннель все запросы приходят с адреса cloudflared — берём настоящий IP клиента.
+    ip = proxy.client_ip(request)
     key = f"auth_ip:{hashlib.sha256(ip.encode('utf-8')).hexdigest()[:32]}"
     try:
         r = redis_client()
@@ -167,6 +168,13 @@ def _reset_login_failures(email: str) -> None:
 
 @app.post("/auth/register")
 def register(body: RegisterIn, request: Request):
+    if proxy.via_tunnel(request):
+        # Стенд открыт в интернет: иначе зарегистрироваться мог бы кто угодно.
+        raise HTTPException(
+            status_code=403,
+            detail="Регистрация доступна только в локальной сети стенда. "
+                   "Зарегистрируйтесь дома, а из интернета входите.",
+        )
     _check_ip_rate(request)
     conn = db.connect()
     try:
