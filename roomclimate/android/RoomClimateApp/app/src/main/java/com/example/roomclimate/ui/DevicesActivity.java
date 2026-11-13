@@ -71,6 +71,8 @@ public class DevicesActivity extends AppCompatActivity {
         findViewById(R.id.btnPeriodWeek).setOnClickListener(v -> setPeriod(24 * 7));
         btnExport.setOnClickListener(v -> exportCsv());
         findViewById(R.id.btnPush).setOnClickListener(v -> subscribePush());
+        findViewById(R.id.btnAddRoom).setOnClickListener(v -> startActivity(new Intent(this, NewRoomActivity.class)));
+        findViewById(R.id.btnAddSensorDevices).setOnClickListener(v -> startActivity(new Intent(this, AddSensorActivity.class)));
     }
 
     @Override
@@ -80,6 +82,7 @@ public class DevicesActivity extends AppCompatActivity {
             loadDevices();
             loadInsights();
             loadAlerts();
+            loadRooms();
         }
     }
 
@@ -113,6 +116,75 @@ public class DevicesActivity extends AppCompatActivity {
                 tvStatus.setText(ApiErrors.network(t));
             }
         });
+    }
+
+    // ---------- Помещения (из макета) ----------
+
+    private void loadRooms() {
+        LinearLayout list = findViewById(R.id.roomsList);
+        ApiClient.get(this).getRooms().enqueue(Api.call(this, body -> {
+            list.removeAllViews();
+            com.google.gson.JsonArray rooms = body.getAsJsonArray("rooms");
+            for (com.google.gson.JsonElement e : rooms) {
+                com.google.gson.JsonObject room = e.getAsJsonObject();
+                com.google.gson.JsonArray devs = room.getAsJsonArray("devices");
+                StringBuilder sub = new StringBuilder(getResources().getQuantityString(
+                        R.plurals.rooms_sensors, devs.size(), devs.size()));
+                if (devs.size() > 0) {
+                    com.google.gson.JsonObject first = devs.get(0).getAsJsonObject();
+                    if (first.has("temperature") && !first.get("temperature").isJsonNull()) {
+                        sub.append(" · ").append(Units.temperature(this, first.get("temperature").getAsDouble()));
+                    }
+                    if (first.has("humidity") && !first.get("humidity").isJsonNull()) {
+                        sub.append(" · ").append(Math.round(first.get("humidity").getAsDouble())).append(" %");
+                    }
+                }
+                boolean own = room.get("own").getAsBoolean();
+                Rows.add(list, R.drawable.ic_door, Api.str(room, "name"), sub,
+                        own ? v -> roomActions(room.get("id").getAsInt(), Api.str(room, "name")) : null);
+            }
+            int free = body.getAsJsonArray("unassigned").size();
+            if (free > 0) {
+                Rows.add(list, R.drawable.ic_wifi, getString(R.string.rooms_unassigned),
+                        getResources().getQuantityString(R.plurals.rooms_sensors, free, free),
+                        v -> startActivity(new Intent(this, AddSensorActivity.class)));
+            }
+            if (list.getChildCount() == 0) {
+                Rows.add(list, R.drawable.ic_add, getString(R.string.rooms_empty), null,
+                        v -> startActivity(new Intent(this, NewRoomActivity.class)));
+            }
+        }));
+    }
+
+    private void roomActions(int roomId, String name) {
+        String[] actions = {getString(R.string.room_rename), getString(R.string.room_delete)};
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(name)
+                .setItems(actions, (d, which) -> {
+                    if (which == 0) {
+                        android.widget.EditText input = new android.widget.EditText(this);
+                        input.setText(name);
+                        new androidx.appcompat.app.AlertDialog.Builder(this)
+                                .setTitle(R.string.room_rename)
+                                .setView(input)
+                                .setPositiveButton(R.string.save_changes, (d2, w) -> {
+                                    com.google.gson.JsonObject b = new com.google.gson.JsonObject();
+                                    b.addProperty("name", input.getText().toString().trim());
+                                    ApiClient.get(this).renameRoom(roomId, b).enqueue(Api.call(this, ok -> loadRooms()));
+                                })
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show();
+                    } else {
+                        new androidx.appcompat.app.AlertDialog.Builder(this)
+                                .setTitle(getString(R.string.room_delete_title, name))
+                                .setMessage(R.string.room_delete_text)
+                                .setPositiveButton(R.string.room_delete, (d2, w) ->
+                                        ApiClient.get(this).deleteRoom(roomId).enqueue(Api.call(this, ok -> loadRooms())))
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show();
+                    }
+                })
+                .show();
     }
 
     private void showDevices(List<DevicesResponse.Device> devices) {

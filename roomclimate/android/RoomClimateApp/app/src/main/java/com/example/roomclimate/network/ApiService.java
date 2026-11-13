@@ -104,4 +104,47 @@ public interface ApiService {
 
     @retrofit2.http.DELETE("auth/me")
     Call<com.google.gson.JsonObject> deleteAccount();
+
+    // ---- «Мой дом» из макета: помещения, датчики, профиль, семья, безопасность, помощь ----
+
+    @GET("rooms")
+    Call<com.google.gson.JsonObject> getRooms();
+
+    @POST("rooms")
+    Call<com.google.gson.JsonObject> createRoom(@Body com.google.gson.JsonObject body);
+
+    @retrofit2.http.PATCH("rooms/{room_id}")
+    Call<com.google.gson.JsonObject> renameRoom(@retrofit2.http.Path("room_id") int roomId,
+                                                @Body com.google.gson.JsonObject body);
+
+    @retrofit2.http.DELETE("rooms/{room_id}")
+    Call<com.google.gson.JsonObject> deleteRoom(@retrofit2.http.Path("room_id") int roomId);
+
+    @POST("devices/{device_id}/setup")
+    Call<com.google.gson.JsonObject> setupDevice(@retrofit2.http.Path("device_id") String deviceId,
+                                                 @Body com.google.gson.JsonObject body);
+
+    @retrofit2.http.PATCH("auth/me")
+    Call<com.google.gson.JsonObject> updateProfile(@Body com.google.gson.JsonObject body);
+
+    @POST("auth/password/change")
+    Call<com.google.gson.JsonObject> changePassword(@Body com.google.gson.JsonObject body);
+
+    @GET("auth/sessions")
+    Call<com.google.gson.JsonObject> getSessions();
+
+    @retrofit2.http.DELETE("auth/sessions/others")
+    Call<com.google.gson.JsonObject> logoutOthers();
+
+    @GET("family")
+    Call<com.google.gson.JsonObject> getFamily();
+
+    @POST("family")
+    Call<com.google.gson.JsonObject> inviteFamily(@Body com.google.gson.JsonObject body);
+
+    @retrofit2.http.DELETE("family")
+    Call<com.google.gson.JsonObject> removeFamily(@Query("email") String email);
+
+    @POST("support")
+    Call<com.google.gson.JsonObject> sendSupport(@Body com.google.gson.JsonObject body);
 }

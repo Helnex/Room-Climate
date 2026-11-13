@@ -70,6 +70,10 @@ public final class ThresholdNotifier {
         if (!ThresholdChecker.isAlarm(status) || status.name().equals(previous)) {
             return;
         }
+        // «Настройки → Уведомления»: о температуре / влажности можно не сообщать.
+        if (!com.example.roomclimate.ui.AppPrefs.notify(context, metricKey)) {
+            return;
+        }
 
         ensureChannels(context);
         String shownUnit = Formatters.unit(unit);

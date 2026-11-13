@@ -194,6 +194,17 @@
                     android:textColor="@color/white"
                     app:backgroundTint="@null" />
             </LinearLayout>
+
+            <!-- Из макета: «Уведомления» и «Единицы измерения» (строки добавляет SettingsActivity) -->
+            <LinearLayout
+                android:id="@+id/settingsSections"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_white_card"
+                android:orientation="vertical"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
         </LinearLayout>
     </ScrollView>
 

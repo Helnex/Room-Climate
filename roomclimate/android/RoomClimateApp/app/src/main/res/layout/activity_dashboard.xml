@@ -153,6 +153,19 @@
                 android:textSize="15sp"
                 android:textStyle="bold"
                 app:backgroundTint="@null" />
+
+            <!-- Из макета: карточка «+» → экран «Добавить метрику» -->
+            <Button
+                android:id="@+id/btnAddMetric"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_btn_secondary"
+                android:text="@string/add_metric_plus"
+                android:textAllCaps="false"
+                android:textColor="@color/green_primary"
+                android:textSize="15sp"
+                app:backgroundTint="@null" />
         </LinearLayout>
     </ScrollView>
 
