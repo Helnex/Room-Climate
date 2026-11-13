@@ -279,7 +279,7 @@ public class ClimateWidget extends AppWidgetProvider {
                 : context.getString(R.string.widget_title, device));
 
         boolean show = d != null && state != WidgetStyle.State.SIGNED_OUT;
-        String temp = show ? WidgetStyle.temperature(d.temperature) : "—°";
+        String temp = show ? WidgetStyle.temperature(shown(context, d.temperature)) : "—°";
         String humidity = show ? WidgetStyle.humidity(d.humidity) : "—%";
         rv.setTextViewText(R.id.wTemp, temp);
 
@@ -296,10 +296,10 @@ public class ClimateWidget extends AppWidgetProvider {
             rv.setTextViewText(R.id.wUpdated, show ? updatedText(context, d, state) : "");
             InsightsResponse.Stats t = show && d.stats != null ? d.stats.get("temperature") : null;
             String range = t != null
-                    ? context.getString(R.string.widget_range, WidgetStyle.temperature(t.min), WidgetStyle.temperature(t.max))
+                    ? context.getString(R.string.widget_range, WidgetStyle.temperature(shown(context, t.min)), WidgetStyle.temperature(shown(context, t.max)))
                     : "";
             rv.setTextViewText(R.id.wRange, range);
-            String dew = show && d.dewPoint != null ? WidgetStyle.temperature(d.dewPoint) : "—°";
+            String dew = show && d.dewPoint != null ? WidgetStyle.temperature(shown(context, d.dewPoint)) : "—°";
             if (size == Size.WIDE) {
                 rv.setTextViewText(R.id.wHumidity, show ? context.getString(R.string.widget_humidity, humidity) : "");
                 rv.setTextViewText(R.id.wDew, show && d.dewPoint != null ? context.getString(R.string.widget_dew, dew) : "");
@@ -357,6 +357,12 @@ public class ClimateWidget extends AppWidgetProvider {
     static String updatedText(Context context, InsightsResponse d, WidgetStyle.State state) {
         String time = localTime(d.lastSeen);
         return state == WidgetStyle.State.SILENT ? time : context.getString(R.string.widget_online, time);
+    }
+
+    /** Температура в единицах из «Настройки → Единицы измерения» (сервер хранит °C). */
+    static Double shown(Context context, Double celsius) {
+        return celsius == null || !com.example.roomclimate.ui.AppPrefs.fahrenheit(context)
+                ? celsius : com.example.roomclimate.ui.Units.toFahrenheit(celsius);
     }
 
     /** ISO-время сервера (UTC) -> «14:32» по часам телефона. */

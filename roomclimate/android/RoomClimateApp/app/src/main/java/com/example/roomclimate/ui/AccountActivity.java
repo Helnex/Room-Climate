@@ -44,7 +44,14 @@ public class AccountActivity extends AppCompatActivity {
 
         tvAvatar.setText(Formatters.initials(name, surname));
 
+        profileReturned = false;
         tvLogout.setOnClickListener(v -> logout());
+        // Строки из макета, которые раньше никуда не вели: теперь открывают свои экраны.
+        findViewById(R.id.tvEditProfile).setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
+        findViewById(R.id.rowFamily).setOnClickListener(v -> startActivity(new Intent(this, FamilyActivity.class)));
+        findViewById(R.id.rowSecurity).setOnClickListener(v -> startActivity(new Intent(this, SecurityActivity.class)));
+        findViewById(R.id.rowHelp).setOnClickListener(v -> startActivity(new Intent(this, HelpActivity.class)));
+        findViewById(R.id.cardMyHome).setOnClickListener(v -> startActivity(new Intent(this, DevicesActivity.class)));
         findViewById(R.id.tvDeleteAccount).setOnClickListener(v -> confirmDeleteAccount());
         Switch switchAlerts = findViewById(R.id.switchClimateAlerts);
         switchAlerts.setChecked(UserPrefs.alertsEnabled(this));
@@ -77,6 +84,22 @@ public class AccountActivity extends AppCompatActivity {
                 clearAndGoLogin();
             }
         });
+    }
+
+    private boolean profileReturned;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Вернулись из «Профиля» — показать новое имя и почту.
+        if (profileReturned && UserPrefs.isLoggedIn(this)) {
+            String name = UserPrefs.getName(this);
+            String surname = UserPrefs.getSurname(this);
+            ((TextView) findViewById(R.id.tvFullName)).setText(getString(R.string.full_name, name, surname).trim());
+            ((TextView) findViewById(R.id.tvEmail)).setText(UserPrefs.getEmail(this));
+            ((TextView) findViewById(R.id.tvAvatar)).setText(Formatters.initials(name, surname));
+        }
+        profileReturned = true;
     }
 
     /** Удаление аккаунта и персональных данных на сервере (DELETE /auth/me) с подтверждением. */

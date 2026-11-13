@@ -41,6 +41,43 @@
         <activity android:name=".ui.HistoryActivity" android:exported="false" />
         <activity android:name=".ui.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.DevicesActivity" android:exported="false" />
+        <!-- Экраны из макета: помещения, датчики, профиль, семья, безопасность, уведомления, единицы, помощь -->
+        <activity
+            android:name=".ui.NewRoomActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.AddSensorActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.AddMetricActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.ProfileActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.FamilyActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.SecurityActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.NotificationsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.UnitsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.HelpActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <!-- Ссылка со страницы сервера /connect (QR-код): roomclimate://connect?url=http://IP:8000 -->
         <activity
             android:name=".ui.ConnectActivity"
