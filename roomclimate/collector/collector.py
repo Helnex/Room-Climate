@@ -19,6 +19,7 @@ import random
 import time
 import urllib.request
 
+import board_status
 import extra_sensors
 from alarm import Alarm
 from buffer import Buffer
@@ -203,6 +204,17 @@ def describe(t: float | None, h: float | None, extra: list[dict]) -> str:
     return ", ".join(parts)
 
 
+def send_status(sensor, extras: list, buffered: int, alarm_on: bool) -> None:
+    """«Пульс» платы для приложения; без связи просто пропускается (не в буфер)."""
+    names = ["dht22" if isinstance(sensor, Dht22Sensor) else "test"]
+    names += [e.kind if not isinstance(e, extra_sensors.FakeExtra) else f"{e.kind}-test" for e in extras]
+    try:
+        data = board_status.collect(SERVER_URL, buffered, names, alarm_on)
+        board_status.send(SERVER_URL, DEVICE_ID, INGEST_TOKEN, data)
+    except Exception as exc:  # noqa: BLE001
+        print(f"состояние платы не отправлено: {exc!r}", flush=True)
+
+
 def main() -> None:
     sensor = make_sensor()
     extras = extra_sensors.make_extras(extra_sensors.parse_kinds(extra_sensors.EXTRA_SENSORS), SENSOR)
@@ -213,6 +225,7 @@ def main() -> None:
     next_try = 0.0  # когда снова пробовать связь после ошибки (пока ждём — копим в буфер)
     buf = Buffer()
     alarm = Alarm(SERVER_URL, DEVICE_ID, INGEST_TOKEN)
+    last_status = None  # monotonic-время последней отправки состояния платы
     if alarm.enabled:
         print(f"сигнал на плате: светодиод {alarm.led.name or '—'}, пищалка {alarm.buzzer.name or '—'}", flush=True)
     if len(buf):
@@ -257,6 +270,9 @@ def main() -> None:
                             next_try = time.monotonic() + next_delay(failures)
                             buf.add(body)
                             print(f"нет связи ({failures} подряд): {exc!r} — в буфере {len(buf)}", flush=True)
+            if last_status is None or time.monotonic() - last_status >= board_status.STATUS_SEC:
+                last_status = time.monotonic()
+                send_status(sensor, extras, len(buf), alarm.active)
             wait(PERIOD_SEC, extras)
     finally:
         sensor.close()

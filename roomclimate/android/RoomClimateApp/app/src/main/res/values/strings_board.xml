@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Карточка «Raspberry Pi» на экране «Устройства»: состояние платы от сборщика. -->
+<resources>
+    <string name="board_title">Raspberry Pi · %1$s</string>
+    <string name="board_online">Плата на связи</string>
+    <string name="board_offline">Плата не на связи</string>
+    <string name="board_seen">Последний сигнал: %1$s</string>
+    <string name="board_cpu">Процессор</string>
+    <string name="board_cpu_value">%1$s °C</string>
+    <string name="board_cpu_hot">%1$s °C — перегрев, нужен радиатор или обдув</string>
+    <string name="board_wifi">Wi-Fi</string>
+    <string name="board_wifi_good">отличный сигнал (%1$d дБм)</string>
+    <string name="board_wifi_ok">нормальный сигнал (%1$d дБм)</string>
+    <string name="board_wifi_bad">слабый сигнал (%1$d дБм)</string>
+    <string name="board_uptime">Работает без перезагрузки</string>
+    <string name="board_uptime_days">%1$d дн %2$d ч</string>
+    <string name="board_uptime_hours">%1$d ч %2$d мин</string>
+    <string name="board_uptime_minutes">%1$d мин</string>
+    <string name="board_buffer">Ждут отправки</string>
+    <string name="board_buffer_value">%1$d показаний в буфере платы</string>
+    <string name="board_collector">Сборщик</string>
+    <string name="board_version">версия %1$s</string>
+    <string name="board_alarm">Сигнал на плате включён</string>
+    <string name="board_alarm_sub">Показания вне порогов — горит светодиод</string>
+</resources>
