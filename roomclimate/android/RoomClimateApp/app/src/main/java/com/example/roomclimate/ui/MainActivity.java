@@ -131,6 +131,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<AuthResponse> call, @NonNull Throwable t) {
                 setLoading(false);
+                // Найденный раньше адрес перестал отвечать (сменилась сеть) — в следующий раз искать заново.
+                ServerDiscovery.forget();
+                serverReady = false;
+                discoverServer();
                 Toast.makeText(MainActivity.this, ApiErrors.network(t), Toast.LENGTH_LONG).show();
             }
         });

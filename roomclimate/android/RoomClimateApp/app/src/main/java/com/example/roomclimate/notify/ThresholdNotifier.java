@@ -77,6 +77,13 @@ public final class ThresholdNotifier {
 
         ensureChannels(context);
         String shownUnit = Formatters.unit(unit);
+        if ("temperature".equals(metricKey) && "°C".equals(shownUnit)) {
+            // Как на дашборде: в единицах из «Единицы измерения» (проверка порогов — в °C выше).
+            value = com.example.roomclimate.ui.Units.shown(context, value);
+            min = com.example.roomclimate.ui.Units.shown(context, min);
+            max = com.example.roomclimate.ui.Units.shown(context, max);
+            shownUnit = com.example.roomclimate.ui.Units.symbol(context);
+        }
         String body = status == ThresholdChecker.Status.ABOVE
                 ? context.getString(
                 R.string.notification_above,

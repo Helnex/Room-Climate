@@ -90,7 +90,7 @@ public class DashboardActivity extends AppCompatActivity {
         handler.removeCallbacks(pollTask);
         handler.postDelayed(pollTask, POLL_MS);
 
-        if (!AppPermissions.hasLocalNetwork(this)) {
+        if (AppPermissions.blocksServer(this)) {
             tvConnection.setText(R.string.local_network_needed);
             tvConnection.setTextColor(ContextCompat.getColor(this, R.color.alert_text));
             return;
@@ -113,8 +113,8 @@ public class DashboardActivity extends AppCompatActivity {
                     lastHumidityMax = response.body().humidityMaxOrDefault();
                     tvThresholds.setText(getString(
                             R.string.thresholds_range,
-                            lastMin,
-                            lastMax,
+                            Units.temperature(DashboardActivity.this, lastMin),
+                            Units.temperature(DashboardActivity.this, lastMax),
                             lastHumidityMin,
                             lastHumidityMax
                     ));
@@ -151,6 +151,12 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<CurrentTelemetryResponse> call, @NonNull Throwable t) {
                 showError(ApiErrors.network(t));
+                // Сменилась сеть (дом ↔ мобильный интернет) — ищем сервер заново и сразу обновляем.
+                com.example.roomclimate.network.ServerDiscovery.recover(DashboardActivity.this, url -> {
+                    if (url != null && !isFinishing()) {
+                        refresh();
+                    }
+                });
             }
         });
     }
@@ -192,11 +198,11 @@ public class DashboardActivity extends AppCompatActivity {
         switch (status) {
             case ABOVE:
                 color = R.color.alert_text;
-                text = getString(R.string.status_above, lastMax);
+                text = getString(R.string.status_above, Units.temperature(this, lastMax));
                 break;
             case BELOW:
                 color = R.color.alert_text;
-                text = getString(R.string.status_below, lastMin);
+                text = getString(R.string.status_below, Units.temperature(this, lastMin));
                 break;
             case OK:
                 color = R.color.green_primary;

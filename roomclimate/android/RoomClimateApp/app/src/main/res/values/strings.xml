@@ -68,12 +68,12 @@
     <string name="updated_at">Обновлено: %1$s</string>
     <string name="updated_never">Нет свежих измерений</string>
     <string name="thresholds_unknown">Пороги ещё не загружены</string>
-    <string name="thresholds_range">Температура %1$.1f…%2$.1f °C · влажность %3$.1f…%4$.1f %%</string>
+    <string name="thresholds_range">Температура %1$s…%2$s · влажность %3$.1f…%4$.1f %%</string>
     <string name="status_humidity_above">Влажность выше порога %1$.1f %%</string>
     <string name="status_humidity_below">Влажность ниже порога %1$.1f %%</string>
     <string name="status_ok">Температура в норме</string>
-    <string name="status_above">Выше порога %1$.1f °C</string>
-    <string name="status_below">Ниже порога %1$.1f °C</string>
+    <string name="status_above">Выше порога %1$s</string>
+    <string name="status_below">Ниже порога %1$s</string>
     <string name="status_unknown">Нет порогов для сравнения</string>
     <string name="status_no_temperature">Нет температуры</string>
     <string name="status_no_data">Нет данных. Запустите сборщик или simulate_collector.py</string>
@@ -139,7 +139,7 @@
     <string name="duration_minutes">%1$d мин</string>
     <string name="duration_hours">%1$d ч</string>
     <string name="insights_title">Климат сейчас</string>
-    <string name="insight_dew_point">Точка росы: %1$s °C</string>
+    <string name="insight_dew_point">Точка росы: %1$s</string>
     <string name="insight_mold">Риск плесени: %1$s</string>
     <string name="period_day">Сутки</string>
     <string name="period_week">Неделя</string>

@@ -83,10 +83,14 @@ public class AddSensorActivity extends AppCompatActivity {
     }
 
     private void setBoard(String id, String state) {
+        // Название, подставленное для прошлой платы («Датчик pi-1»), меняем вместе с платой —
+        // раньше при выборе другой платы оставалось старое имя. Своё название не трогаем.
+        String typed = editName.getText().toString();
+        boolean auto = typed.isEmpty() || (deviceId != null && typed.equals(getString(R.string.sensor_name, deviceId)));
         deviceId = id;
         tvBoardTitle.setText(getString(R.string.sensor_board_title, id));
         tvBoardState.setText(state);
-        if (editName.getText().length() == 0) {
+        if (auto) {
             editName.setText(getString(R.string.sensor_name, id));
         }
     }

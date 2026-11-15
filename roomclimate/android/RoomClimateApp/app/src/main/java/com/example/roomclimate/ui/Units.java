@@ -24,6 +24,11 @@ public final class Units {
         return format(f ? toFahrenheit(celsius) : celsius) + (f ? " °F" : " °C");
     }
 
+    /** Значение °C в выбранных единицах (без подписи). */
+    public static double shown(Context context, double celsius) {
+        return AppPrefs.fahrenheit(context) ? toFahrenheit(celsius) : celsius;
+    }
+
     /** Только символ единицы: «°C» / «°F». */
     public static String symbol(Context context) {
         return AppPrefs.fahrenheit(context) ? "°F" : "°C";

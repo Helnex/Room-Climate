@@ -130,6 +130,31 @@ public final class ServerDiscovery {
         }
     }
 
+    /** Не чаще раза в 20 с: иначе при выключенном сервере телефон всё время сканировал бы сеть. */
+    private static final long RECOVER_INTERVAL_MS = 20_000L;
+    private static long lastRecover;
+
+    /**
+     * Сервер по сохранённому адресу не отвечает — например, вошли дома (http://192.168.1.12:8000),
+     * а теперь на мобильном интернете, или наоборот вернулись домой, где внешний адрес из-за
+     * роутера не открывается. Раньше поиск запускался только на экране входа, и после входа
+     * приложение навсегда оставалось на старом адресе. Ищем заново; callback получает новый
+     * адрес, если он отличается от прежнего, иначе null.
+     */
+    public static void recover(Context context, Callback callback) {
+        Context app = context.getApplicationContext();
+        long now = System.currentTimeMillis();
+        synchronized (LOCK) {
+            if (searching || now - lastRecover < RECOVER_INTERVAL_MS) {
+                return;
+            }
+            lastRecover = now;
+            cachedUrl = null;
+        }
+        String before = ServerConfig.normalizeBaseUrl(ServerConfig.getBaseUrl(app));
+        ensure(app, url -> callback.onResult(url != null && !url.equalsIgnoreCase(before) ? url : null));
+    }
+
     /** Текст-подсказка, почему сервер не найден (ресурс строки). */
     public static int lastFailureMessage() {
         return lastFailure;

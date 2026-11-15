@@ -94,15 +94,6 @@
                     app:backgroundTint="@null" />
             </LinearLayout>
 
-            <Button
-                style="@style/RC.Button.Primary"
-                android:layout_marginTop="16dp"
-                android:background="@drawable/rc_btn_disabled"
-                android:enabled="false"
-                android:text="@string/add_metric"
-                android:textColor="@color/gray_text"
-                app:backgroundTint="@null" />
-
             <TextView
                 style="@style/RC.Text.Caption"
                 android:layout_width="match_parent"
