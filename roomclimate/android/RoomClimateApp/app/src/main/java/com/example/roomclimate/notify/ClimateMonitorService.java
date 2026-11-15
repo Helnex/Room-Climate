@@ -123,7 +123,7 @@ public class ClimateMonitorService extends Service {
         if (polling) {
             return;
         }
-        if (!AppPermissions.hasLocalNetwork(this)) {
+        if (AppPermissions.blocksServer(this)) {
             schedule();
             return;
         }
@@ -148,6 +148,8 @@ public class ClimateMonitorService extends Service {
 
             @Override
             public void onFailure(@NonNull Call<SettingsResponse> call, @NonNull Throwable t) {
+                // Сервер по старому адресу недоступен (сменилась сеть) — найти заново к следующей проверке.
+                com.example.roomclimate.network.ServerDiscovery.recover(ClimateMonitorService.this, url -> { });
                 finishPoll();
             }
         });

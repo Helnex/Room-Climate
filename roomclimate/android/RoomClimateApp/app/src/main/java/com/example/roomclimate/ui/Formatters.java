@@ -43,6 +43,9 @@ public final class Formatters {
         if ("humidity".equals(type)) {
             return context.getString(R.string.label_humidity);
         }
+        if (Metrics.isExtra(type)) {
+            return Metrics.label(context, type);
+        }
         return type == null ? "" : type;
     }
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Точка и волны — датчик движения. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="@color/dark_text">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M7,10a2,2 0,1 0,0 4a2,2 0,1 0,0 -4z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2" android:strokeLineCap="round"
+        android:pathData="M11.5,8.5a5,5 0,0 1,0 7M15,6a8.5,8.5 0,0 1,0 12M18.5,3.5a12,12 0,0 1,0 17" />
+</vector>

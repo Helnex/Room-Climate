@@ -121,6 +121,7 @@ public class RegisterActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(@NonNull Call<AuthResponse> call, @NonNull Throwable t) {
                         setLoading(false);
+                        ServerDiscovery.forget(); // адрес перестал отвечать — при повторе искать заново
                         Toast.makeText(RegisterActivity.this, ApiErrors.network(t), Toast.LENGTH_LONG).show();
                     }
                 });

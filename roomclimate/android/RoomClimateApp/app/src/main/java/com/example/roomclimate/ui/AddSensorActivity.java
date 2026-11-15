@@ -44,6 +44,8 @@ public class AddSensorActivity extends AppCompatActivity {
     private TextView tvRoom;
     private String deviceId;
     private Integer roomId;
+    /** climate (DHT22), co2, light или motion — как в SensorSetupIn на сервере. */
+    private String kind = "climate";
     private final List<String> roomNames = new ArrayList<>();
     private final List<Integer> roomIds = new ArrayList<>();
 
@@ -83,10 +85,14 @@ public class AddSensorActivity extends AppCompatActivity {
     }
 
     private void setBoard(String id, String state) {
+        // Название, подставленное для прошлой платы («Датчик pi-1»), меняем вместе с платой —
+        // раньше при выборе другой платы оставалось старое имя. Своё название не трогаем.
+        String typed = editName.getText().toString();
+        boolean auto = typed.isEmpty() || (deviceId != null && typed.equals(getString(R.string.sensor_name, deviceId)));
         deviceId = id;
         tvBoardTitle.setText(getString(R.string.sensor_board_title, id));
         tvBoardState.setText(state);
-        if (editName.getText().length() == 0) {
+        if (auto) {
             editName.setText(getString(R.string.sensor_name, id));
         }
     }
@@ -149,20 +155,28 @@ public class AddSensorActivity extends AppCompatActivity {
 
     // ---------- Показатель ----------
 
+    private static final String[] KINDS = {"climate", Metrics.CO2, Metrics.LIGHT, Metrics.MOTION};
+
     private void pickKind() {
-        // Наша плата измеряет температуру и влажность; остальные показатели из макета —
-        // для датчиков, которых пока нет в стенде.
-        String[] kinds = {
+        // Температура и влажность — DHT22; CO₂, свет и движение — доп. датчики сборщика
+        // (EXTRA_SENSORS на Raspberry Pi), их показания приходят в том же /telemetry.
+        String[] labels = {
                 getString(R.string.kind_climate),
-                getString(R.string.kind_co2_soon),
-                getString(R.string.kind_light_soon),
-                getString(R.string.kind_motion_soon),
+                getString(R.string.kind_co2),
+                getString(R.string.kind_light),
+                getString(R.string.kind_motion),
         };
         new AlertDialog.Builder(this)
                 .setTitle(R.string.sensor_metric_label)
-                .setItems(kinds, (d, which) -> {
+                .setItems(labels, (d, which) -> {
+                    kind = KINDS[which];
+                    ((TextView) findViewById(R.id.tvSensorKind)).setText(labels[which]);
                     if (which != 0) {
-                        Toast.makeText(this, R.string.kind_not_available, Toast.LENGTH_LONG).show();
+                        new AlertDialog.Builder(this)
+                                .setTitle(labels[which])
+                                .setMessage(getString(R.string.kind_board_note, kind))
+                                .setPositiveButton(android.R.string.ok, null)
+                                .show();
                     }
                 })
                 .show();
@@ -228,13 +242,18 @@ public class AddSensorActivity extends AppCompatActivity {
         }
         JsonObject body = new JsonObject();
         body.addProperty("name", name);
-        body.addProperty("kind", "climate");
+        body.addProperty("kind", kind);
         if (roomId != null) {
             body.addProperty("room_id", roomId);
         }
         ApiClient.get(this).setupDevice(deviceId, body).enqueue(Api.call(this, ok -> {
-            // Новый датчик сразу становится основной платой дашборда.
-            ServerConfig.save(this, ServerConfig.getBaseUrl(this), deviceId);
+            if ("climate".equals(kind)) {
+                // Датчик температуры и влажности сразу становится основной платой дашборда.
+                ServerConfig.save(this, ServerConfig.getBaseUrl(this), deviceId);
+            } else {
+                // CO₂ / свет / движение — отдельная карточка на дашборде, основная плата прежняя.
+                Metrics.add(this, deviceId, kind);
+            }
             Toast.makeText(this, getString(R.string.sensor_added, name), Toast.LENGTH_LONG).show();
             setResult(RESULT_OK);
             finish();

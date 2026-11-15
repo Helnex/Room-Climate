@@ -51,7 +51,20 @@ def main():
         living = next(x for x in rooms["rooms"] if x["id"] == room)
         assert living["devices"][0]["name"] == "Датчик в гостиной" and living["devices"][0]["temperature"] == 23.4, rooms
         assert c.get("/rooms", headers=b).json()["rooms"] == [], "чужие помещения не видны"
-        print("OK  датчик: закреплён, назван, в помещении; чужим недоступен")
+        r = c.post("/devices/pi-7/setup", json={"name": "CO2 в гостиной", "room_id": room, "kind": "co2"}, headers=a)
+        assert r.status_code == 200 and r.json()["kind"] == "co2", r.text
+        assert c.post("/devices/pi-7/setup", json={"name": "X", "kind": "radar"}, headers=a).status_code == 422
+        living = next(x for x in c.get("/rooms", headers=a).json()["rooms"] if x["id"] == room)
+        assert living["devices"][0]["kind"] == "co2", living
+        conn = db.connect()
+        sid = db.ensure_device_and_sensor(conn, "pi-7", "co2", "ppm")
+        db.insert_measurement(conn, sid, 640.0, db.utc_now())
+        conn.commit()
+        conn.close()
+        living = next(x for x in c.get("/rooms", headers=a).json()["rooms"] if x["id"] == room)
+        assert living["devices"][0]["readings"] == {"temperature": 23.4, "co2": 640.0}, living
+        c.post("/devices/pi-7/setup", json={"name": "Датчик в гостиной", "room_id": room}, headers=a)
+        print("OK  датчик: закреплён, назван, в помещении; чужим недоступен; типы co2/light/motion")
 
         # Семейный доступ
         assert c.post("/family", json={"email": "nobody@example.com"}, headers=a).status_code == 404

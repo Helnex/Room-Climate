@@ -93,6 +93,7 @@ public class ForgotPasswordActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable t) {
                     btnSend.setEnabled(true);
+                    ServerDiscovery.forget(); // адрес перестал отвечать — при повторе искать заново
                     Toast.makeText(ForgotPasswordActivity.this, ApiErrors.network(t), Toast.LENGTH_LONG).show();
                 }
             });

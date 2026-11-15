@@ -56,6 +56,9 @@ public class AccountActivity extends AppCompatActivity {
         Switch switchAlerts = findViewById(R.id.switchClimateAlerts);
         switchAlerts.setChecked(UserPrefs.alertsEnabled(this));
         switchAlerts.setOnCheckedChangeListener((CompoundButton button, boolean checked) -> {
+            if (button.getTag() != null) {
+                return; // синхронизация из onResume, а не нажатие
+            }
             UserPrefs.setAlertsEnabled(AccountActivity.this, checked);
             if (checked) {
                 ClimateMonitorService.start(AccountActivity.this);
@@ -100,6 +103,14 @@ public class AccountActivity extends AppCompatActivity {
             ((TextView) findViewById(R.id.tvAvatar)).setText(Formatters.initials(name, surname));
         }
         profileReturned = true;
+        // Выключатель мог смениться в «Настройки → Уведомления»: раньше здесь оставалось старое
+        // положение, и следующее нажатие делало обратное ожидаемому.
+        Switch switchAlerts = findViewById(R.id.switchClimateAlerts);
+        if (switchAlerts != null && switchAlerts.isChecked() != UserPrefs.alertsEnabled(this)) {
+            switchAlerts.setTag(Boolean.TRUE);
+            switchAlerts.setChecked(UserPrefs.alertsEnabled(this));
+            switchAlerts.setTag(null);
+        }
     }
 
     /** Удаление аккаунта и персональных данных на сервере (DELETE /auth/me) с подтверждением. */
@@ -118,7 +129,7 @@ public class AccountActivity extends AppCompatActivity {
                                 } else {
                                     Toast.makeText(AccountActivity.this,
                                             com.example.roomclimate.network.ApiErrors.message(response,
-                                                    getString(R.string.delete_account_title)), Toast.LENGTH_LONG).show();
+                                                    getString(R.string.request_failed)), Toast.LENGTH_LONG).show();
                                 }
                             }
 

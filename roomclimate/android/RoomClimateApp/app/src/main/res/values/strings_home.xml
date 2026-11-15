@@ -56,14 +56,10 @@
     <string name="sensor_room_none">Без помещения</string>
     <string name="sensor_room_pick">Выбор помещения</string>
     <string name="sensor_add_button">Добавить датчик</string>
-    <string name="sensor_add_note">После добавления датчик станет основным на дашборде</string>
+    <string name="sensor_add_note">После добавления показания датчика появятся на дашборде</string>
     <string name="sensor_added">Датчик «%1$s» добавлен</string>
     <string name="sensor_pick_board_first">Сначала выберите плату</string>
     <string name="kind_climate">Температура и влажность</string>
-    <string name="kind_co2_soon">Углекислый газ, ppm — нужен датчик CO₂</string>
-    <string name="kind_light_soon">Освещённость, лк — нужен датчик света</string>
-    <string name="kind_motion_soon">Движение — нужен датчик движения</string>
-    <string name="kind_not_available">Такого датчика пока нет в стенде: плата измеряет температуру и влажность.</string>
 
     <!-- Добавить метрику -->
     <string name="add_metric">Добавить метрику</string>

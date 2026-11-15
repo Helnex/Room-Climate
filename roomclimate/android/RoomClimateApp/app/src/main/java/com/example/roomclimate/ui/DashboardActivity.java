@@ -90,7 +90,7 @@ public class DashboardActivity extends AppCompatActivity {
         handler.removeCallbacks(pollTask);
         handler.postDelayed(pollTask, POLL_MS);
 
-        if (!AppPermissions.hasLocalNetwork(this)) {
+        if (AppPermissions.blocksServer(this)) {
             tvConnection.setText(R.string.local_network_needed);
             tvConnection.setTextColor(ContextCompat.getColor(this, R.color.alert_text));
             return;
@@ -113,8 +113,8 @@ public class DashboardActivity extends AppCompatActivity {
                     lastHumidityMax = response.body().humidityMaxOrDefault();
                     tvThresholds.setText(getString(
                             R.string.thresholds_range,
-                            lastMin,
-                            lastMax,
+                            Units.temperature(DashboardActivity.this, lastMin),
+                            Units.temperature(DashboardActivity.this, lastMax),
                             lastHumidityMin,
                             lastHumidityMax
                     ));
@@ -151,6 +151,12 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<CurrentTelemetryResponse> call, @NonNull Throwable t) {
                 showError(ApiErrors.network(t));
+                // Сменилась сеть (дом ↔ мобильный интернет) — ищем сервер заново и сразу обновляем.
+                com.example.roomclimate.network.ServerDiscovery.recover(DashboardActivity.this, url -> {
+                    if (url != null && !isFinishing()) {
+                        refresh();
+                    }
+                });
             }
         });
     }
@@ -183,6 +189,56 @@ public class DashboardActivity extends AppCompatActivity {
                 ServerConfig.getBaseUrl(this)
         ));
         tvConnection.setTextColor(ContextCompat.getColor(this, R.color.green_primary));
+        renderExtras(body);
+    }
+
+    /**
+     * Карточка метрик из «Добавить метрику» (CO₂, освещённость, движение). Показания основной
+     * платы берутся из уже полученного ответа, других плат — отдельным запросом на каждую.
+     */
+    private void renderExtras(CurrentTelemetryResponse mainBody) {
+        android.widget.LinearLayout box = findViewById(R.id.extraMetrics);
+        java.util.List<String> entries = Metrics.onDashboard(this);
+        box.removeAllViews();
+        box.setVisibility(entries.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE);
+        String mainId = ServerConfig.getDeviceId(this);
+        java.util.Map<String, java.util.List<Object[]>> others = new java.util.LinkedHashMap<>();
+        for (String entry : entries) {
+            String deviceId = Metrics.deviceOf(entry);
+            String type = Metrics.typeOf(entry);
+            android.view.View row = Rows.add(box, Metrics.icon(type), Metrics.label(this, type),
+                    getString(R.string.value_placeholder),
+                    v -> startActivity(new android.content.Intent(this, AddMetricActivity.class)));
+            TextView sub = row.findViewById(R.id.rowSubtitle);
+            if (deviceId.equals(mainId)) {
+                showExtra(sub, type, mainBody == null ? null : mainBody.reading(type), deviceId, true);
+            } else {
+                others.computeIfAbsent(deviceId, k -> new java.util.ArrayList<>()).add(new Object[]{sub, type});
+            }
+        }
+        for (java.util.Map.Entry<String, java.util.List<Object[]>> board : others.entrySet()) {
+            ApiClient.get(this).getCurrent(board.getKey()).enqueue(new Callback<CurrentTelemetryResponse>() {
+                @Override
+                public void onResponse(@NonNull Call<CurrentTelemetryResponse> call,
+                                       @NonNull Response<CurrentTelemetryResponse> response) {
+                    CurrentTelemetryResponse b = response.isSuccessful() ? response.body() : null;
+                    for (Object[] item : board.getValue()) {
+                        String type = (String) item[1];
+                        showExtra((TextView) item[0], type, b == null ? null : b.reading(type), board.getKey(), false);
+                    }
+                }
+
+                @Override
+                public void onFailure(@NonNull Call<CurrentTelemetryResponse> call, @NonNull Throwable t) {
+                    // остаётся «—»
+                }
+            });
+        }
+    }
+
+    private void showExtra(TextView sub, String type, Reading reading, String deviceId, boolean main) {
+        String value = Metrics.value(this, type, reading == null ? null : reading.value);
+        sub.setText(main ? value : getString(R.string.metric_on_board, value, deviceId));
     }
 
     private void applyThreshold(double temperature) {
@@ -192,11 +248,11 @@ public class DashboardActivity extends AppCompatActivity {
         switch (status) {
             case ABOVE:
                 color = R.color.alert_text;
-                text = getString(R.string.status_above, lastMax);
+                text = getString(R.string.status_above, Units.temperature(this, lastMax));
                 break;
             case BELOW:
                 color = R.color.alert_text;
-                text = getString(R.string.status_below, lastMin);
+                text = getString(R.string.status_below, Units.temperature(this, lastMin));
                 break;
             case OK:
                 color = R.color.green_primary;
@@ -237,6 +293,7 @@ public class DashboardActivity extends AppCompatActivity {
         tvUpdated.setText(R.string.updated_never);
         tvConnection.setText(getString(R.string.connection_no_data, ServerConfig.getBaseUrl(this)));
         tvConnection.setTextColor(ContextCompat.getColor(this, R.color.gray_text));
+        renderExtras(null);
     }
 
     private void showError(String message) {

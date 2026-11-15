@@ -396,7 +396,7 @@ public class DevicesActivity extends AppCompatActivity {
 
         StringBuilder details = new StringBuilder();
         if (body.dewPoint != null) {
-            details.append(getString(R.string.insight_dew_point, Formatters.number(body.dewPoint))).append('\n');
+            details.append(getString(R.string.insight_dew_point, Units.temperature(this, body.dewPoint))).append('\n');
         }
         if (body.moldRisk != null) {
             details.append(getString(R.string.insight_mold, body.moldRisk.label)).append('\n');
@@ -424,10 +424,16 @@ public class DevicesActivity extends AppCompatActivity {
                     continue;
                 }
                 any = true;
-                String unit = "humidity".equals(entry.getKey()) ? "%" : "°C";
+                // Температура — в единицах из «Единицы измерения» (°C / °F), как на дашборде.
+                boolean temp = "temperature".equals(entry.getKey());
+                String unit = "humidity".equals(entry.getKey()) ? "%"
+                        : temp ? Units.symbol(this)
+                        : Metrics.isExtra(entry.getKey()) ? Metrics.unit(entry.getKey()) : "";
                 stats.append('\n').append(getString(R.string.stats_row,
                         Formatters.sensor(this, entry.getKey()),
-                        Formatters.number(s.min), Formatters.number(s.avg), Formatters.number(s.max), unit));
+                        Formatters.number(temp ? Units.shown(this, s.min) : s.min),
+                        Formatters.number(temp ? Units.shown(this, s.avg) : s.avg),
+                        Formatters.number(temp ? Units.shown(this, s.max) : s.max), unit));
             }
         }
         if (!any) {

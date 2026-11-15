@@ -26,6 +26,15 @@ public final class AppPermissions {
                 == PackageManager.PERMISSION_GRANTED;
     }
 
+    /**
+     * Нужен ли доступ к локальной сети, чтобы дойти до текущего сервера. Через интернет
+     * (https://api.climate-room.online) он не нужен — раньше без этого разрешения дашборд
+     * не загружался даже на мобильном интернете.
+     */
+    public static boolean blocksServer(Context context) {
+        return !hasLocalNetwork(context) && ServerDiscovery.isLocalUrl(ServerConfig.getBaseUrl(context));
+    }
+
     public static void request(AppCompatActivity activity) {
         List<String> needed = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= LOCAL_NETWORK_SDK

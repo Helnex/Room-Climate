@@ -68,7 +68,9 @@ class RoomIn(BaseModel):
 class SensorSetupIn(BaseModel):
     name: str = Field(min_length=1, max_length=40)
     room_id: int | None = None
-    kind: str = Field(default="climate", pattern="^(climate)$")
+    # climate — температура и влажность (DHT22); co2 — углекислый газ, ppm (MH-Z19);
+    # light — освещённость, лк (BH1750); motion — движение (PIR HC-SR501).
+    kind: str = Field(default="climate", pattern="^(climate|co2|light|motion)$")
     @field_validator("name")
     @classmethod
     def _name(cls, value: str) -> str:
@@ -174,6 +176,9 @@ def build_router(current_user) -> APIRouter:
                     "temperature": latest.get("temperature"),
                     "humidity": latest.get("humidity"),
                     "last_seen": latest.get("measured_at"),
+                    # Все последние показания платы, включая доп. датчики (co2, light, motion),
+                    # — по ним экран «Добавить метрику» понимает, что можно вынести на дашборд.
+                    "readings": {k: v for k, v in latest.items() if k != "measured_at"},
                 }
                 (rooms[d["room_id"]]["devices"] if d["room_id"] in rooms else unassigned).append(item)
         finally:
