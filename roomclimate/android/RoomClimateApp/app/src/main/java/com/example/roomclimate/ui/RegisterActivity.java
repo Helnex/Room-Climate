@@ -28,6 +28,7 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText editEmailReg;
     private EditText editPasswordReg;
     private Button btnCreateAccount;
+    private EditText editInviteReg;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +40,7 @@ public class RegisterActivity extends AppCompatActivity {
         editSurname = findViewById(R.id.editSurname);
         editEmailReg = findViewById(R.id.editEmailReg);
         editPasswordReg = findViewById(R.id.editPasswordReg);
+        editInviteReg = findViewById(R.id.editInviteReg);
         PasswordToggle.attach(editPasswordReg, findViewById(R.id.btnTogglePasswordReg));
         btnCreateAccount = findViewById(R.id.btnCreateAccount);
 
@@ -93,7 +95,8 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void sendRegister(String name, String surname, String email, String password) {
         ApiClient.get(this)
-                .register(AuthRequest.register(name, surname, email, password))
+                .register(AuthRequest.register(name, surname, email, password,
+                        editInviteReg != null ? editInviteReg.getText().toString() : null))
                 .enqueue(new Callback<AuthResponse>() {
                     @Override
                     public void onResponse(@NonNull Call<AuthResponse> call,

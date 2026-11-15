@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field, field_validator
 from redis.exceptions import RedisError
 
-from app import access, alerts, db, insights, tls_cert
+from app import access, alerts, db, insights, proxy, tls_cert
 from app.redis_store import read_current, redis_client
 from app.schemas import SAFE_ID, normalize_email
 
@@ -306,6 +306,9 @@ def build_router(current_user) -> APIRouter:
         """Куда подписаться в приложении ntfy, чтобы получать push без фонового сервиса."""
         if not alerts.NTFY_TOPIC or not NTFY_PUBLIC_PORT:
             return {"enabled": False}
+        if proxy.via_tunnel(request):
+            # Сервер ntfy стенда доступен только в локальной сети: подписку оформляют дома.
+            return {"enabled": False, "reason": "remote"}
         host = _safe_host(request).split(":")[0]
         server = f"http://{host}:{NTFY_PUBLIC_PORT}"
         return {
@@ -388,12 +391,15 @@ def build_router(current_user) -> APIRouter:
     @router.get("/connect", response_class=HTMLResponse)
     def connect_page(request: Request):
         host = _safe_host(request)
-        base = f"http://{host}"
-        local_only = host.split(":")[0] in ("127.0.0.1", "localhost", "[::1]")
+        remote = proxy.via_tunnel(request)
+        # Через Cloudflare Tunnel страница открыта по https с настоящим сертификатом.
+        base = f"https://{host}" if remote else f"http://{host}"
+        local_only = not remote and host.split(":")[0] in ("127.0.0.1", "localhost", "[::1]")
         page_url = f"{base}/connect"
-        # Если есть HTTPS-сервис — передаём приложению https-адрес и отпечаток ключа (pin):
+        # В локальной сети, если есть HTTPS-сервис, — https-адрес и отпечаток ключа (pin):
         # дальше телефон общается с сервером шифрованно и только с этим ключом.
-        pin = tls_cert.spki_pin()
+        # Через туннель pin не нужен: сертификат Cloudflare проверяется обычным способом.
+        pin = None if remote else tls_cert.spki_pin()
         app_url = f"https://{host.rsplit(':', 1)[0]}:{TLS_PUBLIC_PORT}" if pin else base
         params = f"url={quote(app_url, safe='')}" + (f"&pin={quote(pin, safe='')}" if pin else "")
         intent_url = f"intent://connect?{params}#Intent;scheme=roomclimate;package={APP_PACKAGE};end"
@@ -433,7 +439,8 @@ def build_router(current_user) -> APIRouter:
 <p class="muted">Если кнопка не сработала: <a href="{html.escape(scheme_url)}">запасная ссылка</a>
 или впишите адрес <code>{html.escape(base)}</code> в «Настройки → Подключение к серверу».</p>
 <p class="muted">Раз эта страница открылась на телефоне — сеть между телефоном и компьютером работает.</p>
-<p class="muted">{"Шифрование: HTTPS, отпечаток ключа <code>" + html.escape(pin) + "</code>" if pin
+<p class="muted">{"Подключение из интернета (HTTPS)." if remote
+ else "Шифрование: HTTPS, отпечаток ключа <code>" + html.escape(pin) + "</code>" if pin
  else "HTTPS-сервис не запущен — приложение подключится без шифрования (только в локальной сети)."}</p>
 </body></html>"""
         return HTMLResponse(body)

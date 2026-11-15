@@ -6,6 +6,8 @@ x-app-env: &app-env
   # устройства в Wi-Fi не смогут присылать поддельные показания. Пусто = приём от всех.
   INGEST_TOKEN: ${INGEST_TOKEN:-}
   SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+  # Код приглашения для регистрации из интернета (start.ps1 создаёт сам). Пусто = закрыто.
+  REGISTER_INVITE_CODE: ${REGISTER_INVITE_CODE:-}
   # Через сколько секунд без показаний датчик считается «молчащим».
   STALE_AFTER_SECONDS: ${STALE_AFTER_SECONDS:-180}
   # Тревога, только если выход за порог держится дольше этого времени (защита от дребезга).
@@ -97,7 +99,66 @@ services:
       NTFY_CACHE_FILE: /var/cache/ntfy/cache.db
       NTFY_CACHE_DURATION: 24h
 
+  # Доступ из интернета через Cloudflare Tunnel. Включается профилем:
+  # docker compose --profile tunnel up -d  (или start.ps1 -Tunnel / TUNNEL=1 в .env).
+  # - Постоянный туннель со своим доменом: в .env задать CLOUDFLARED_COMMAND (см. .env.example),
+  #   ключи туннеля лежат в server/.cloudflared/ (создаются `cloudflared tunnel login/create`,
+  #   в git не попадают).
+  # - Без этого — временный туннель *.trycloudflare.com: без домена и аккаунта, адрес меняется
+  #   при перезапуске (start.ps1 показывает новый и кладёт в QR).
+  # Наружу открыт только HTTP API (сервис api); ntfy и порт платы остаются в локальной сети.
+  cloudflared:
+    image: cloudflare/cloudflared:2024.11.1
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: ${CLOUDFLARED_COMMAND:-tunnel --no-autoupdate --protocol http2 --url http://api:8000}
+    volumes:
+      - ./.cloudflared:/home/nonroot/.cloudflared:ro
+    # Свой DNS: VPN-клиенты на компьютере (FlClash/Clash) подменяют адреса Cloudflare на
+    # «фейковые» 198.18.x.x, и соединение туннеля рвётся (ошибка 1033 / TLS EOF).
+    dns: ["1.1.1.1", "1.0.0.1"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Вход из интернета напрямую: свой домен -> белый IP роутера -> этот компьютер.
+  # Включается профилем public (COMPOSE_PROFILES=public в .env). На роутере пробросить
+  # TCP 80 и 443 на этот компьютер. Caddy сам получает сертификат Let's Encrypt.
+  caddy:
+    image: caddy:2.8.4-alpine
+    profiles: ["public"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Динамический DNS: при смене IP у провайдера переписывает запись PUBLIC_HOST в Cloudflare.
+  ddns:
+    image: python:3.11-slim
+    profiles: ["public"]
+    restart: unless-stopped
+    command: ["python", "-u", "/ddns/ddns.py"]
+    environment:
+      CF_API_TOKEN: ${CF_API_TOKEN:-}
+      CF_ZONE_ID: ${CF_ZONE_ID:-}
+      PUBLIC_HOST: ${PUBLIC_HOST:-}
+      DDNS_INTERVAL: ${DDNS_INTERVAL:-120}
+    volumes:
+      - ./scripts/ddns.py:/ddns/ddns.py:ro
+    dns: ["1.1.1.1", "1.0.0.1"]
+
 volumes:
   sqlite_data:
+  caddy_data:
+  caddy_config:
   certs:
   ntfy_cache:
