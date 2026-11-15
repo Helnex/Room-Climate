@@ -20,6 +20,7 @@ import time
 import urllib.request
 
 import extra_sensors
+from buffer import Buffer
 
 SERVER_URL = os.environ.get("SERVER_URL", "http://127.0.0.1:8000").rstrip("/")
 DEVICE_ID = os.environ.get("DEVICE_ID", "pi-1")
@@ -153,7 +154,12 @@ def build_body(temperature: float | None, humidity: float | None, device_id: str
 
 def send(temperature: float | None, humidity: float | None, server_url: str = SERVER_URL,
          token: str = INGEST_TOKEN, device_id: str = DEVICE_ID, extra: list[dict] | None = None) -> str:
-    data = json.dumps(build_body(temperature, humidity, device_id, extra)).encode("utf-8")
+    return post(build_body(temperature, humidity, device_id, extra), server_url, token)
+
+
+def post(body: dict, server_url: str = SERVER_URL, token: str = INGEST_TOKEN) -> str:
+    """POST /telemetry; ошибка связи или HTTP — исключение (HTTPError несёт .code)."""
+    data = json.dumps(body).encode("utf-8")
     headers = {"Content-Type": "application/json; charset=utf-8"}
     if token:
         headers["X-Device-Token"] = token
@@ -184,6 +190,12 @@ def wait(seconds: float, extras: list) -> None:
         time.sleep(min(0.5, left))
 
 
+def rejected(exc: Exception) -> bool:
+    """Сервер отверг само показание (4xx, кроме токена/перегрузки) — в буфер его класть незачем."""
+    code = getattr(exc, "code", None)
+    return isinstance(code, int) and 400 <= code < 500 and code not in (401, 408, 429)
+
+
 def describe(t: float | None, h: float | None, extra: list[dict]) -> str:
     parts = [f"{t} °C, {h} %"] if t is not None else []
     parts += [f"{r['type']}={r['value']} {r['unit']}" for r in extra]
@@ -197,6 +209,10 @@ def main() -> None:
     print(f"collector -> {SERVER_URL} device={DEVICE_ID} period={PERIOD_SEC}s датчики: {names}", flush=True)
     failures = 0
     sensor_failures = 0
+    next_try = 0.0  # когда снова пробовать связь после ошибки (пока ждём — копим в буфер)
+    buf = Buffer()
+    if len(buf):
+        print(f"в буфере {len(buf)} неотправленных показаний — дошлю, когда будет связь", flush=True)
     try:
         while True:
             t = h = None
@@ -217,14 +233,26 @@ def main() -> None:
             # Доп. датчики отправляются, даже если DHT22 в этот раз не прочитался.
             extra = extra_sensors.read_all(extras)
             if t is not None or extra:
-                try:
-                    print(f"{describe(t, h, extra)} -> {send(t, h, extra=extra)}", flush=True)
-                    failures = 0
-                except Exception as exc:  # noqa: BLE001 — сбор не должен останавливаться
-                    # Сервер перезапускается, пропал Wi-Fi — повторяем с растущей паузой.
-                    failures += 1
-                    print(f"ошибка отправки ({failures} подряд): {exc!r}", flush=True)
-            wait(next_delay(failures), extras)
+                body = build_body(t, h, DEVICE_ID, extra)
+                if time.monotonic() < next_try:
+                    buf.add(body)  # связи не было — не ждём таймаут, сразу в буфер
+                else:
+                    try:
+                        print(f"{describe(t, h, extra)} -> {post(body)}", flush=True)
+                        failures = 0
+                        sent = buf.flush(post)
+                        if sent:
+                            print(f"дослано из буфера: {sent}, осталось {len(buf)}", flush=True)
+                    except Exception as exc:  # noqa: BLE001 — сбор не должен останавливаться
+                        if rejected(exc):
+                            print(f"сервер отклонил показание: {exc!r}", flush=True)
+                        else:
+                            # Сервер перезапускается, пропал Wi-Fi — копим и пробуем реже.
+                            failures += 1
+                            next_try = time.monotonic() + next_delay(failures)
+                            buf.add(body)
+                            print(f"нет связи ({failures} подряд): {exc!r} — в буфере {len(buf)}", flush=True)
+            wait(PERIOD_SEC, extras)
     finally:
         sensor.close()
         for extra_sensor in extras:
