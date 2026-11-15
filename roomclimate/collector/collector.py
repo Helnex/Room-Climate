@@ -20,6 +20,7 @@ import time
 import urllib.request
 
 import extra_sensors
+from alarm import Alarm
 from buffer import Buffer
 
 SERVER_URL = os.environ.get("SERVER_URL", "http://127.0.0.1:8000").rstrip("/")
@@ -211,6 +212,9 @@ def main() -> None:
     sensor_failures = 0
     next_try = 0.0  # когда снова пробовать связь после ошибки (пока ждём — копим в буфер)
     buf = Buffer()
+    alarm = Alarm(SERVER_URL, DEVICE_ID, INGEST_TOKEN)
+    if alarm.enabled:
+        print(f"сигнал на плате: светодиод {alarm.led.name or '—'}, пищалка {alarm.buzzer.name or '—'}", flush=True)
     if len(buf):
         print(f"в буфере {len(buf)} неотправленных показаний — дошлю, когда будет связь", flush=True)
     try:
@@ -234,6 +238,7 @@ def main() -> None:
             extra = extra_sensors.read_all(extras)
             if t is not None or extra:
                 body = build_body(t, h, DEVICE_ID, extra)
+                alarm.update(body["readings"])  # сигнал работает и без связи — по последним порогам
                 if time.monotonic() < next_try:
                     buf.add(body)  # связи не было — не ждём таймаут, сразу в буфер
                 else:
@@ -255,6 +260,7 @@ def main() -> None:
             wait(PERIOD_SEC, extras)
     finally:
         sensor.close()
+        alarm.close()
         for extra_sensor in extras:
             extra_sensor.close()
 

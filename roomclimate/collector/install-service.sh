@@ -59,6 +59,8 @@ ask DHT_PIN "Вывод DATA датчика DHT22 (BCM: D4 = GPIO4, физиче
 ask EXTRA_SENSORS "Доп. датчики через запятую: co2, light, motion (пусто — только DHT22)" ""
 EXTRA_SENSORS="$(echo "$EXTRA_SENSORS" | tr 'A-Z;' 'a-z,' | tr -d ' ')"
 MOTION_PIN="${MOTION_PIN:-D17}"
+ask ALARM_LED_PIN "Светодиод сигнала (BCM, например D27; пусто — без светодиода)" ""
+ask BUZZER_PIN "Пищалка (BCM, например D22; пусто — без пищалки)" ""
 SENSOR="${SENSOR:-auto}"
 
 if [[ ! "$SERVER_URL" =~ ^https?://[A-Za-z0-9.\-]+(:[0-9]+)?$ ]]; then
@@ -81,6 +83,12 @@ if [[ ! "$EXTRA_SENSORS" =~ ^((co2|light|motion)(,(co2|light|motion))*)?$ ]]; th
     echo "Доп. датчики: co2, light, motion через запятую" >&2
     exit 1
 fi
+for pin in "$ALARM_LED_PIN" "$BUZZER_PIN"; do
+    if [[ -n "$pin" && ! "$pin" =~ ^D[0-9]{1,2}$ ]]; then
+        echo "Вывод сигнала: вида D27 (номер GPIO по BCM) или пусто" >&2
+        exit 1
+    fi
+done
 if [[ ! "$MOTION_PIN" =~ ^D[0-9]{1,2}$ ]]; then
     echo "MOTION_PIN: вида D17 (номер GPIO по BCM)" >&2
     exit 1
@@ -139,6 +147,8 @@ TEMP_OFFSET=${TEMP_OFFSET:-0}
 HUMIDITY_OFFSET=${HUMIDITY_OFFSET:-0}
 EXTRA_SENSORS=$EXTRA_SENSORS
 MOTION_PIN=$MOTION_PIN
+ALARM_LED_PIN=$ALARM_LED_PIN
+BUZZER_PIN=$BUZZER_PIN
 EOF
 chown root:"$RUN_USER" "$ENV_FILE"
 chmod 640 "$ENV_FILE"
