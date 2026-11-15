@@ -31,6 +31,11 @@ SENSOR = os.environ.get("SENSOR", "auto").strip().lower()
 # Вывод платы, к которому подключён DATA датчика (нумерация BCM): D4 = GPIO4, физический пин 7.
 DHT_PIN = os.environ.get("DHT_PIN", "D4").strip().upper()
 
+# Поправка датчика: если DHT22 врёт относительно градусника/гигрометра, например
+# показывает на 0,8 °C больше — TEMP_OFFSET=-0.8. Применяется до отправки на сервер.
+TEMP_OFFSET = float(os.environ.get("TEMP_OFFSET", "0"))
+HUMIDITY_OFFSET = float(os.environ.get("HUMIDITY_OFFSET", "0"))
+
 # Пределы DHT22 по документации. Всё, что за ними, — сбой чтения, а не погода.
 TEMP_RANGE = (-40.0, 80.0)
 HUMIDITY_RANGE = (0.0, 100.0)
@@ -107,6 +112,14 @@ class Dht22Sensor:
             self._device.exit()
         except Exception:  # noqa: BLE001
             pass
+
+
+def calibrate(temperature: float, humidity: float,
+              temp_offset: float = TEMP_OFFSET, humidity_offset: float = HUMIDITY_OFFSET) -> tuple[float, float]:
+    """Применить поправку; влажность остаётся в пределах 0…100 %."""
+    t = round(temperature + temp_offset, 1)
+    h = round(min(100.0, max(0.0, humidity + humidity_offset)), 1)
+    return t, h
 
 
 def make_sensor(mode: str = SENSOR):
@@ -188,7 +201,7 @@ def main() -> None:
         while True:
             t = h = None
             try:
-                t, h = sensor.read()
+                t, h = calibrate(*sensor.read())
                 sensor_failures = 0
             except SensorError as exc:
                 # Сбой датчика — не повод молчать: пишем в журнал и пробуем в следующем цикле.

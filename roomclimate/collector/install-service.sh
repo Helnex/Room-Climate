@@ -91,6 +91,12 @@ fi
 if [[ ",$EXTRA_SENSORS," == *",light,"* ]] && [[ ! -e /dev/i2c-1 ]]; then
     echo "Внимание: нет /dev/i2c-1 — включите I2C: sudo raspi-config → Interface Options → I2C" >&2
 fi
+for offset in "${TEMP_OFFSET:-0}" "${HUMIDITY_OFFSET:-0}"; do
+    if [[ ! "$offset" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]; then
+        echo "Поправка датчика — число, например -0.8" >&2
+        exit 1
+    fi
+done
 if [[ ! "$SENSOR" =~ ^(auto|dht22|fake)$ ]]; then
     echo "SENSOR: auto, dht22 или fake" >&2
     exit 1
@@ -129,6 +135,8 @@ PERIOD_SEC=$PERIOD_SEC
 INGEST_TOKEN=$INGEST_TOKEN
 SENSOR=$SENSOR
 DHT_PIN=$DHT_PIN
+TEMP_OFFSET=${TEMP_OFFSET:-0}
+HUMIDITY_OFFSET=${HUMIDITY_OFFSET:-0}
 EXTRA_SENSORS=$EXTRA_SENSORS
 MOTION_PIN=$MOTION_PIN
 EOF
