@@ -10,10 +10,11 @@ After=network-online.target
 Type=simple
 User=@USER@
 WorkingDirectory=@DIR@
-# SERVER_URL, DEVICE_ID, PERIOD_SEC, INGEST_TOKEN — в отдельном файле с правами 600
+# SERVER_URL, DEVICE_ID, PERIOD_SEC, INGEST_TOKEN, SENSOR, DHT_PIN — в отдельном файле с правами 600
 # (токен не попадает в вывод `systemctl show` и в репозиторий).
+# @PYTHON@ — python из .venv с библиотекой DHT22 (или системный, если её нет).
 EnvironmentFile=/etc/roomclimate/collector.env
-ExecStart=/usr/bin/python3 -u @DIR@/collector.py
+ExecStart=@PYTHON@ -u @DIR@/collector.py
 Restart=always
 RestartSec=5
 # Ограничения: сборщику не нужны запись в систему и новые привилегии.

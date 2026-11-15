@@ -1,1 +1,3 @@
-# На Pi позже: библиотека DHT22. Для проверки с ПК зависимости не нужны.
+# Только для Raspberry Pi (ставит install-service.sh в .venv). С ПК сборщик работает без них
+# (SENSOR=fake или auto — тогда отправляются тестовые значения).
+adafruit-circuitpython-dht>=4.0,<5
