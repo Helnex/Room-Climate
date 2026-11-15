@@ -36,10 +36,12 @@ if ! id "$RUN_USER" >/dev/null 2>&1; then
     echo "Пользователь $RUN_USER не найден" >&2
     exit 1
 fi
-# Доступ к GPIO для датчика DHT22.
-if getent group gpio >/dev/null; then
-    usermod -aG gpio "$RUN_USER"
-fi
+# Доступ к GPIO (DHT22, датчик движения), UART (CO₂ MH-Z19) и I2C (свет BH1750).
+for group in gpio dialout i2c; do
+    if getent group "$group" >/dev/null; then
+        usermod -aG "$group" "$RUN_USER"
+    fi
+done
 
 ask() {  # ask ПЕРЕМЕННАЯ "вопрос" "значение по умолчанию"
     local name=$1 prompt=$2 default=${3:-}
@@ -54,6 +56,9 @@ ask DEVICE_ID "Имя платы" "pi-1"
 ask PERIOD_SEC "Период отправки, секунд" "10"
 ask INGEST_TOKEN "INGEST_TOKEN (из server/.env на компьютере)" ""
 ask DHT_PIN "Вывод DATA датчика DHT22 (BCM: D4 = GPIO4, физический пин 7)" "D4"
+ask EXTRA_SENSORS "Доп. датчики через запятую: co2, light, motion (пусто — только DHT22)" ""
+EXTRA_SENSORS="$(echo "$EXTRA_SENSORS" | tr 'A-Z;' 'a-z,' | tr -d ' ')"
+MOTION_PIN="${MOTION_PIN:-D17}"
 SENSOR="${SENSOR:-auto}"
 
 if [[ ! "$SERVER_URL" =~ ^https?://[A-Za-z0-9.\-]+(:[0-9]+)?$ ]]; then
@@ -71,6 +76,20 @@ fi
 if [[ ! "$DHT_PIN" =~ ^D[0-9]{1,2}$ ]]; then
     echo "Вывод датчика: вида D4 (номер GPIO по BCM)" >&2
     exit 1
+fi
+if [[ ! "$EXTRA_SENSORS" =~ ^((co2|light|motion)(,(co2|light|motion))*)?$ ]]; then
+    echo "Доп. датчики: co2, light, motion через запятую" >&2
+    exit 1
+fi
+if [[ ! "$MOTION_PIN" =~ ^D[0-9]{1,2}$ ]]; then
+    echo "MOTION_PIN: вида D17 (номер GPIO по BCM)" >&2
+    exit 1
+fi
+if [[ ",$EXTRA_SENSORS," == *",co2,"* ]] && [[ ! -e /dev/serial0 ]]; then
+    echo "Внимание: нет /dev/serial0 — включите UART: sudo raspi-config → Interface Options → Serial Port (консоль — нет, порт — да)" >&2
+fi
+if [[ ",$EXTRA_SENSORS," == *",light,"* ]] && [[ ! -e /dev/i2c-1 ]]; then
+    echo "Внимание: нет /dev/i2c-1 — включите I2C: sudo raspi-config → Interface Options → I2C" >&2
 fi
 if [[ ! "$SENSOR" =~ ^(auto|dht22|fake)$ ]]; then
     echo "SENSOR: auto, dht22 или fake" >&2
@@ -110,6 +129,8 @@ PERIOD_SEC=$PERIOD_SEC
 INGEST_TOKEN=$INGEST_TOKEN
 SENSOR=$SENSOR
 DHT_PIN=$DHT_PIN
+EXTRA_SENSORS=$EXTRA_SENSORS
+MOTION_PIN=$MOTION_PIN
 EOF
 chown root:"$RUN_USER" "$ENV_FILE"
 chmod 640 "$ENV_FILE"

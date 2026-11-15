@@ -53,7 +53,32 @@
                     android:orientation="vertical" />
             </LinearLayout>
 
+            <!-- CO₂ / свет / движение, которые плата уже присылает (или настроена присылать) -->
             <LinearLayout
+                android:id="@+id/metricAvailableCard"
+                style="@style/RC.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/RC.Text.Section"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/metric_available" />
+
+                <LinearLayout
+                    android:id="@+id/metricAvailableList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/metricNoneBlock"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"

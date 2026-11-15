@@ -1,3 +1,6 @@
 # Только для Raspberry Pi (ставит install-service.sh в .venv). С ПК сборщик работает без них
 # (SENSOR=fake или auto — тогда отправляются тестовые значения).
 adafruit-circuitpython-dht>=4.0,<5
+# Доп. датчики (EXTRA_SENSORS): CO₂ MH-Z19 по UART и свет BH1750 по I2C.
+pyserial>=3.5,<4
+smbus2>=0.4,<1

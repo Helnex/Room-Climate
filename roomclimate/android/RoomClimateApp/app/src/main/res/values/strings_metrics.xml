@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Дополнительные показатели платы: CO₂, освещённость, движение (сборщик, EXTRA_SENSORS). -->
+<resources>
+    <string name="metric_co2">Углекислый газ</string>
+    <string name="metric_light">Освещённость</string>
+    <string name="metric_motion">Движение</string>
+    <string name="metric_co2_value">%1$d ppm</string>
+    <string name="metric_light_value">%1$d лк</string>
+    <string name="metric_motion_yes">Есть движение</string>
+    <string name="metric_motion_no">Нет движения</string>
+
+    <string name="metric_available">Можно добавить</string>
+    <string name="metric_tap_add">%1$s · нажмите, чтобы добавить</string>
+    <string name="metric_waiting">%1$s · ждём первые показания</string>
+    <string name="metric_added">«%1$s» добавлено на дашборд</string>
+    <string name="metric_remove_title">Убрать «%1$s» с дашборда?</string>
+    <string name="metric_remove_ok">Убрать</string>
+    <string name="metric_on_board">%1$s · %2$s</string>
+
+    <string name="kind_co2">Углекислый газ, ppm — MH-Z19</string>
+    <string name="kind_light">Освещённость, лк — BH1750</string>
+    <string name="kind_motion">Движение — HC-SR501</string>
+    <string name="kind_board_note">Чтобы плата присылала этот показатель, в настройках сборщика на Raspberry Pi добавьте его в EXTRA_SENSORS (например, EXTRA_SENSORS=%1$s).</string>
+</resources>

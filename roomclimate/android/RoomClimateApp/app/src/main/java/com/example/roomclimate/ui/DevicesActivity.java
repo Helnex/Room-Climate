@@ -426,7 +426,9 @@ public class DevicesActivity extends AppCompatActivity {
                 any = true;
                 // Температура — в единицах из «Единицы измерения» (°C / °F), как на дашборде.
                 boolean temp = "temperature".equals(entry.getKey());
-                String unit = "humidity".equals(entry.getKey()) ? "%" : temp ? Units.symbol(this) : "°C";
+                String unit = "humidity".equals(entry.getKey()) ? "%"
+                        : temp ? Units.symbol(this)
+                        : Metrics.isExtra(entry.getKey()) ? Metrics.unit(entry.getKey()) : "";
                 stats.append('\n').append(getString(R.string.stats_row,
                         Formatters.sensor(this, entry.getKey()),
                         Formatters.number(temp ? Units.shown(this, s.min) : s.min),
