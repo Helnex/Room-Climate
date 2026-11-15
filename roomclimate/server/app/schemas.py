@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 import unicodedata
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -32,6 +33,9 @@ class ReadingIn(BaseModel):
 class TelemetryIn(BaseModel):
     device_id: str = Field(min_length=1, max_length=64, pattern=SAFE_ID)
     readings: list[ReadingIn] = Field(min_length=1, max_length=32)
+    # Время замера (ISO 8601). Плата присылает его, когда досылает показания, накопленные
+    # без связи; без него — время приёма сервером, как раньше.
+    measured_at: datetime | None = None
 
 
 class SettingsIn(BaseModel):

@@ -50,16 +50,20 @@ def read_current(r: Redis, device_id: str) -> dict[str, dict]:
     return out
 
 
-def enqueue(r: Redis, device_id: str, sensor_type: str, value: float, unit: str, measured_at: str) -> str:
+def enqueue(r: Redis, device_id: str, sensor_type: str, value: float, unit: str, measured_at: str,
+            late: bool = False) -> str:
+    fields = {
+        "device_id": device_id,
+        "type": sensor_type,
+        "value": str(value),
+        "unit": unit,
+        "measured_at": measured_at,
+    }
+    if late:
+        fields["late"] = "1"  # досланное с платы: в историю, но без тревог
     msg_id = r.xadd(
         settings.stream_name,
-        {
-            "device_id": device_id,
-            "type": sensor_type,
-            "value": str(value),
-            "unit": unit,
-            "measured_at": measured_at,
-        },
+        fields,
         maxlen=STREAM_MAXLEN,
         approximate=True,
     )

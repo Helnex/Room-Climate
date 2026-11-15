@@ -43,6 +43,9 @@ jobs:
       - name: Unit tests (my home)
         run: python3 test_home.py
 
+      - name: Unit tests (board)
+        run: python3 test_board.py
+
       - name: Build and start stack
         run: docker compose up --build -d
 

@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import access, auth, db, extras, home, proxy, recovery
+from app import access, auth, board, db, extras, home, proxy, recovery
 from app.config import settings
 from app.db import utc_now
 from app.errors import translate_http_detail, validation_message
@@ -278,13 +278,14 @@ def health():
 
 @app.post("/telemetry", dependencies=[Depends(device_access)])
 def post_telemetry(body: TelemetryIn):
-    measured_at = utc_now()
+    measured_at, late = board.parse_measured_at(body.measured_at)
     try:
         r = redis_client()
         r.ping()
     except RedisError as exc:
         raise HTTPException(status_code=503, detail="Redis недоступен") from exc
 
+    current = read_current(r, body.device_id) if late else {}
     stored = []
     for item in body.readings:
         payload = {
@@ -293,8 +294,11 @@ def post_telemetry(body: TelemetryIn):
             "measured_at": measured_at,
             "device_id": body.device_id,
         }
-        write_current(r, body.device_id, item.type, payload)
-        enqueue(r, body.device_id, item.type, item.value, item.unit, measured_at)
+        # Досланное показание не затирает более свежее «текущее».
+        newer = current.get(item.type, {}).get("measured_at", "")
+        if not late or measured_at > newer:
+            write_current(r, body.device_id, item.type, payload)
+        enqueue(r, body.device_id, item.type, item.value, item.unit, measured_at, late=late)
         stored.append({"type": item.type, "value": item.value, "unit": item.unit})
     return {"status": "ok", "device_id": body.device_id, "measured_at": measured_at, "stored": stored}
 
@@ -443,6 +447,7 @@ app.include_router(extras.build_router(current_user))
 app.include_router(recovery.build_router())
 # Помещения, датчики, профиль, семья, безопасность, помощь — app/home.py
 app.include_router(home.build_router(current_user))
+app.include_router(board.build_router(current_user, device_access))
 
 
 @app.get("/")

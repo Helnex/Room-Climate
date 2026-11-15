@@ -22,6 +22,10 @@ def process_message(fields: dict) -> None:
         sensor_id = db.ensure_device_and_sensor(conn, device_id, sensor_type, unit)
         db.insert_measurement(conn, sensor_id, value, measured_at)
         conn.commit()
+        # Досланные платой старые показания (late) — только в историю: тревога о том, что
+        # было час назад, уже бесполезна и перепутала бы текущее состояние.
+        if fields.get("late") == "1":
+            return
         # Ошибка в тревогах не должна блокировать запись показаний (иначе вечный повтор).
         try:
             alerts.evaluate(conn, device_id, sensor_type, value, measured_at)
