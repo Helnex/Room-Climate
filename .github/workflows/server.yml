@@ -21,6 +21,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Та же версия, что в Dockerfile: на системном Python раннера (новее) у закреплённого
+      # pydantic нет готовых колёс, и pip падает при сборке pydantic-core из исходников.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Install dependencies for unit tests
         run: python3 -m pip install -r requirements.txt httpx
 
