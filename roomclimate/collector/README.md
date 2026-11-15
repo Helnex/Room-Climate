@@ -152,6 +152,8 @@ sudo ./install-service.sh
 | `systemctl status roomclimate-collector` | Работает ли служба |
 | `journalctl -u roomclimate-collector -f` | Журнал отправки показаний в реальном времени |
 | `sudo systemctl restart roomclimate-collector` | Перезапуск (например, после правки `collector.env`) |
+| `./update.sh --check` | Есть ли новая версия на GitHub |
+| `sudo ./update.sh` | Обновить: скачать код, доставить библиотеки, перезапустить службу |
 | `sudo ./install-service.sh --uninstall` | Удалить службу |
 
 Служба ждёт сеть (`network-online.target`) и перезапускается через 5 с после любого падения;
