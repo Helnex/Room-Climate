@@ -91,6 +91,12 @@ class SensorTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             collector.make_sensor("bmp280")
 
+    def test_calibrate(self):
+        self.assertEqual(collector.calibrate(23.0, 40.0, -0.8, 5.0), (22.2, 45.0))
+        self.assertEqual(collector.calibrate(23.0, 98.0, 0.0, 5.0), (23.0, 100.0))
+        self.assertEqual(collector.calibrate(23.0, 2.0, 0.0, -5.0), (23.0, 0.0))
+        self.assertEqual(collector.calibrate(23.04, 40.0, 0.0, 0.0), (23.0, 40.0))
+
     def test_backoff(self):
         self.assertEqual(collector.next_delay(0, 10), 10)
         self.assertEqual(collector.next_delay(2, 10), 20)

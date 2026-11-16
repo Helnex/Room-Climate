@@ -22,6 +22,8 @@ NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=read-only
 PrivateTmp=true
+# Буфер неотправленных показаний: /var/lib/roomclimate (переживает перезагрузку).
+StateDirectory=roomclimate
 
 [Install]
 WantedBy=multi-user.target

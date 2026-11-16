@@ -52,6 +52,16 @@
                 android:layout_marginTop="12dp"
                 android:orientation="vertical" />
 
+            <!-- Состояние Raspberry Pi основной платы (заполняет BoardStatusCard) -->
+            <LinearLayout
+                android:id="@+id/boardStatusCard"
+                style="@style/RC.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
             <!-- Из макета: помещения и добавление датчика (заполняет DevicesActivity.loadRooms) -->
             <TextView
                 android:id="@+id/tvRoomsTitle"

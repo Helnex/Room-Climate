@@ -1,0 +1,39 @@
+name: collector-ci
+
+on:
+  push:
+    paths:
+      - "roomclimate/collector/**"
+      - ".github/workflows/collector.yml"
+  pull_request:
+    paths:
+      - "roomclimate/collector/**"
+      - ".github/workflows/collector.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: roomclimate/collector
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # На Raspberry Pi OS (Bookworm) — Python 3.11.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Без платы: библиотеки датчиков не нужны, сборщик сам переходит на тестовые значения.
+      - name: Unit tests
+        run: |
+          for t in test_*.py; do
+            echo "== $t"
+            python "$t"
+          done
+
+      - name: Shell scripts syntax
+        run: bash -n install-service.sh && bash -n update.sh

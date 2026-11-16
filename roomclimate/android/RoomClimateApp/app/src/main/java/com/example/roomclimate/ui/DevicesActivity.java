@@ -80,6 +80,7 @@ public class DevicesActivity extends AppCompatActivity {
         super.onResume();
         if (tvStatus != null) {
             loadDevices();
+            BoardStatusCard.load(this, findViewById(R.id.boardStatusCard));
             loadInsights();
             loadAlerts();
             loadRooms();

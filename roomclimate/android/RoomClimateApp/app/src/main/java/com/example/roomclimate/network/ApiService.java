@@ -147,4 +147,8 @@ public interface ApiService {
 
     @POST("support")
     Call<com.google.gson.JsonObject> sendSupport(@Body com.google.gson.JsonObject body);
+
+    /** Состояние Raspberry Pi: температура процессора, Wi-Fi, аптайм, версия, буфер (404 — не присылала). */
+    @GET("devices/{device_id}/status")
+    Call<com.google.gson.JsonObject> getBoardStatus(@retrofit2.http.Path("device_id") String deviceId);
 }
