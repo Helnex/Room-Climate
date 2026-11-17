@@ -26,42 +26,78 @@ public class ClimateChartView extends View {
         }
     }
 
+    private static final int GREEN = Color.parseColor("#397454");
+    private static final int GRAY = Color.parseColor("#778178");
+    private static final int GRID = Color.parseColor("#E5EAE2");
+
+    // Показания сборщика приходят примерно каждые 10 секунд.
+    private static final long GAP_MS = 60_000L;
+
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private List<Point> points = Collections.emptyList();
-
-    private long periodStart;
-    private long periodEnd = 1;
-
     private String unit = "";
+
+    private Double comfortMin;
+    private Double comfortMax;
 
     public ClimateChartView(Context context) {
         super(context);
-        setMinimumHeight(dp(250));
+    }
+
+    public void setComfort(Double min, Double max) {
+        comfortMin = min;
+        comfortMax = max;
+        invalidate();
     }
 
     public void setSeries(
-            List<Point> newPoints,
-            long start,
-            long end,
+            List<Point> data,
+            long periodStart,
+            long periodEnd,
             String newUnit
     ) {
-        points = new ArrayList<>(newPoints);
-        periodStart = start;
-        periodEnd = Math.max(start + 1, end);
+        points = new ArrayList<>(data);
         unit = newUnit;
 
         setContentDescription(
-                "График: " + points.size() + " измерений, единицы " + unit
+                "График: " + points.size()
+                        + " измерений, единицы " + unit
         );
 
         invalidate();
     }
 
-    private int dp(float value) {
-        return Math.round(
-                value * getResources().getDisplayMetrics().density
-        );
+    private float dp(float value) {
+        return value * getResources().getDisplayMetrics().density;
+    }
+
+    private float pointX(
+            long time,
+            long first,
+            long last,
+            float left,
+            float right
+    ) {
+        if (first == last) {
+            return (left + right) / 2f;
+        }
+
+        return left
+                + (float) ((double) (time - first) / (last - first))
+                * (right - left);
+    }
+
+    private float pointY(
+            double value,
+            double min,
+            double max,
+            float top,
+            float bottom
+    ) {
+        return bottom
+                - (float) ((value - min) / (max - min))
+                * (bottom - top);
     }
 
     @Override
@@ -69,17 +105,16 @@ public class ClimateChartView extends View {
         super.onDraw(canvas);
 
         paint.setStyle(Paint.Style.FILL);
-        paint.setStrokeWidth(dp(1));
         paint.setTextSize(
-                12 * getResources().getDisplayMetrics().scaledDensity
+                10 * getResources().getDisplayMetrics().scaledDensity
         );
-        paint.setColor(Color.rgb(125, 132, 125));
+        paint.setColor(GRAY);
 
         if (points.isEmpty()) {
             paint.setTextAlign(Paint.Align.CENTER);
 
             canvas.drawText(
-                    "Нет данных для графика",
+                    "Нет измерений за выбранный период",
                     getWidth() / 2f,
                     getHeight() / 2f,
                     paint
@@ -88,138 +123,226 @@ public class ClimateChartView extends View {
             return;
         }
 
-        double min = points.get(0).value;
-        double max = min;
+        double min = Double.POSITIVE_INFINITY;
+        double max = Double.NEGATIVE_INFINITY;
 
         for (Point point : points) {
             min = Math.min(min, point.value);
             max = Math.max(max, point.value);
         }
 
-        double padding = Math.max((max - min) * 0.15, 0.5);
+        if (comfortMin != null && comfortMax != null) {
+            min = Math.min(min, comfortMin);
+            max = Math.max(max, comfortMax);
+        }
+
+        double padding = Math.max(0.5, (max - min) * 0.12);
 
         min -= padding;
         max += padding;
 
-        float left = dp(54);
-        float right = getWidth() - dp(16);
-        float top = dp(28);
-        float bottom = getHeight() - dp(44);
+        Locale ru = new Locale("ru", "RU");
+
+        float labelWidth = 0;
+
+        for (int i = 0; i <= 4; i++) {
+            String label = String.format(
+                    ru,
+                    "%.1f",
+                    max - (max - min) * i / 4.0
+            );
+
+            labelWidth = Math.max(
+                    labelWidth,
+                    paint.measureText(label)
+            );
+        }
+
+        float left = labelWidth + dp(8);
+        float right = getWidth() - dp(2);
+        float top = dp(22);
+        float bottom = getHeight() - dp(38);
 
         if (right <= left || bottom <= top) {
             return;
         }
 
-        Locale locale = new Locale("ru", "RU");
+        if (comfortMin != null && comfortMax != null) {
+            paint.setColor(Color.parseColor("#EFF4EB"));
+
+            canvas.drawRect(
+                    left,
+                    pointY(comfortMax, min, max, top, bottom),
+                    right,
+                    pointY(comfortMin, min, max, top, bottom),
+                    paint
+            );
+        }
 
         for (int i = 0; i <= 4; i++) {
             float y = top + (bottom - top) * i / 4f;
 
-            paint.setColor(Color.rgb(227, 232, 224));
+            paint.setColor(GRID);
             paint.setStrokeWidth(dp(1));
 
             canvas.drawLine(left, y, right, y, paint);
 
-            double axisValue = max - (max - min) * i / 4.0;
-
-            paint.setColor(Color.rgb(125, 132, 125));
+            paint.setColor(GRAY);
             paint.setTextAlign(Paint.Align.RIGHT);
 
             canvas.drawText(
-                    String.format(locale, "%.1f", axisValue),
+                    String.format(
+                            ru,
+                            "%.1f",
+                            max - (max - min) * i / 4.0
+                    ),
                     left - dp(8),
-                    y + dp(4),
+                    y + dp(3),
                     paint
             );
         }
 
         paint.setTextAlign(Paint.Align.LEFT);
-        canvas.drawText(unit, left, top - dp(10), paint);
+        canvas.drawText(unit, 0, dp(12), paint);
 
-        String timePattern =
-                periodEnd - periodStart > 2 * 86_400_000L
-                        ? "dd.MM"
-                        : "HH:mm";
+        long first = points.get(0).time;
+        long last = points.get(points.size() - 1).time;
 
-        SimpleDateFormat timeFormat =
-                new SimpleDateFormat(timePattern, locale);
+        String pattern = last - first > 86_400_000L
+                ? "dd.MM HH:mm"
+                : "HH:mm";
 
-        for (int i = 0; i <= 2; i++) {
-            float x = left + (right - left) * i / 2f;
+        SimpleDateFormat format = new SimpleDateFormat(pattern, ru);
 
-            long time = periodStart
-                    + (periodEnd - periodStart) * i / 2;
+        int ticks = right - left > dp(260)
+                && last - first < 86_400_000L
+                ? 4
+                : 2;
+
+        if (first == last) {
+            ticks = 0;
+        }
+
+        for (int i = 0; i <= ticks; i++) {
+            float x = ticks == 0
+                    ? (left + right) / 2f
+                    : left + (right - left) * i / ticks;
+
+            long time = ticks == 0
+                    ? first
+                    : first + (last - first) * i / ticks;
 
             paint.setTextAlign(
-                    i == 0
+                    ticks == 0
+                            ? Paint.Align.CENTER
+                            : i == 0
                             ? Paint.Align.LEFT
-                            : i == 2
+                            : i == ticks
                             ? Paint.Align.RIGHT
                             : Paint.Align.CENTER
             );
 
             canvas.drawText(
-                    timeFormat.format(new Date(time)),
+                    format.format(new Date(time)),
                     x,
-                    bottom + dp(24),
+                    bottom + dp(19),
                     paint
             );
         }
 
-        Path line = new Path();
+        int saved = canvas.save();
 
-        float firstX = 0;
-        float lastX = 0;
-        float lastY = 0;
+        canvas.clipRect(
+                left - dp(3),
+                top - dp(3),
+                right + dp(3),
+                bottom + dp(3)
+        );
 
-        for (int i = 0; i < points.size(); i++) {
-            Point point = points.get(i);
+        int segmentStart = 0;
 
-            float x = left
-                    + (float) (
-                    (double) (point.time - periodStart)
-                            / (periodEnd - periodStart)
-            ) * (right - left);
-
-            float y = bottom
-                    - (float) (
-                    (point.value - min) / (max - min)
-            ) * (bottom - top);
-
-            if (i == 0) {
-                line.moveTo(x, y);
-                firstX = x;
-            } else {
-                line.lineTo(x, y);
+        for (int i = 1; i <= points.size(); i++) {
+            if (i < points.size()
+                    && points.get(i).time
+                    - points.get(i - 1).time <= GAP_MS) {
+                continue;
             }
 
-            lastX = x;
-            lastY = y;
+            Point firstPoint = points.get(segmentStart);
+
+            float firstX = pointX(
+                    firstPoint.time, first, last, left, right
+            );
+
+            float firstY = pointY(
+                    firstPoint.value, min, max, top, bottom
+            );
+
+            float lastX = firstX;
+            float lastY = firstY;
+
+            Path line = new Path();
+            line.moveTo(firstX, firstY);
+
+            for (int j = segmentStart + 1; j < i; j++) {
+                Point point = points.get(j);
+
+                lastX = pointX(
+                        point.time, first, last, left, right
+                );
+
+                lastY = pointY(
+                        point.value, min, max, top, bottom
+                );
+
+                line.lineTo(lastX, lastY);
+            }
+
+            if (i - segmentStart > 1) {
+                Path area = new Path(line);
+
+                area.lineTo(lastX, bottom);
+                area.lineTo(firstX, bottom);
+                area.close();
+
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(Color.parseColor("#DDEADC"));
+
+                canvas.drawPath(area, paint);
+
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(dp(2.2f));
+                paint.setStrokeJoin(Paint.Join.ROUND);
+                paint.setColor(GREEN);
+
+                canvas.drawPath(line, paint);
+            }
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(GREEN);
+
+            if (i - segmentStart == 1) {
+                canvas.drawCircle(
+                        firstX, firstY, dp(2.5f), paint
+                );
+            }
+
+            if (i == points.size()) {
+                canvas.drawCircle(
+                        lastX, lastY, dp(4), paint
+                );
+
+                paint.setColor(Color.WHITE);
+
+                canvas.drawCircle(
+                        lastX, lastY, dp(1.5f), paint
+                );
+            }
+
+            segmentStart = i;
         }
 
-        int savedState = canvas.save();
-
-        canvas.clipRect(left, top, right, bottom);
-
-        Path area = new Path(line);
-        area.lineTo(lastX, bottom);
-        area.lineTo(firstX, bottom);
-        area.close();
-
+        canvas.restoreToCount(saved);
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.rgb(222, 235, 218));
-
-        canvas.drawPath(area, paint);
-
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(dp(2.5f));
-        paint.setColor(Color.rgb(60, 116, 88));
-
-        canvas.drawPath(line, paint);
-
-        paint.setStyle(Paint.Style.FILL);
-        canvas.drawCircle(lastX, lastY, dp(4), paint);
-
-        canvas.restoreToCount(savedState);
     }
 }
