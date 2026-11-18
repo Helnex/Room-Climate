@@ -1,54 +1,43 @@
 package com.example.roomclimate.ui;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-import android.widget.Button;
+import android.text.InputType;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
 
 import com.example.roomclimate.R;
-import com.example.roomclimate.models.DevicesResponse;
-import com.example.roomclimate.models.InsightsResponse;
 import com.example.roomclimate.network.ApiClient;
-import com.example.roomclimate.network.ApiErrors;
 import com.example.roomclimate.network.ServerConfig;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
-import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 /**
- * Вкладка «Устройства» (раньше была заглушкой «скоро»):
- *  - список плат и статус «на связи / молчит N минут»;
- *  - комфорт, точка росы, риск плесени и советы по текущим показаниям;
- *  - min/max/среднее за сутки или неделю;
- *  - экспорт показаний в CSV (открывается в Excel) через «Поделиться».
+ * «Устройства» по макету Figma. Помещения (у каждого — плата из базы сервера) и датчики,
+ * привязанные к платам. Платы и датчики заводятся в базу сервера миграциями, здесь их только
+ * выбирают: «Добавить помещение» → свободная плата, «Добавить датчик» → свободный датчик.
+ * Нажатие на помещение — показать его на дашборде, состояние платы, переименовать, удалить.
  */
 public class DevicesActivity extends AppCompatActivity {
-    private TextView tvStatus;
-    private LinearLayout devicesList;
-    private TextView tvComfort;
-    private TextView tvDetails;
-    private TextView tvAdvice;
-    private TextView tvStats;
-    private Button btnExport;
-    private int periodHours = 24;
+    private LinearLayout roomsList;
+    private LinearLayout sensorsList;
+    private TextView tvSummary;
+    private TextView tvSummaryStatus;
+    private JsonArray rooms = new JsonArray();
+    private List<JsonObject> sensors = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,470 +47,308 @@ public class DevicesActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_devices);
         BottomNav.bind(this, R.id.navDevices);
+        roomsList = findViewById(R.id.roomsList);
+        sensorsList = findViewById(R.id.sensorsList);
+        tvSummary = findViewById(R.id.tvSummary);
+        tvSummaryStatus = findViewById(R.id.tvSummaryStatus);
 
-        tvStatus = findViewById(R.id.tvDevicesStatus);
-        devicesList = findViewById(R.id.devicesList);
-        tvComfort = findViewById(R.id.tvComfort);
-        tvDetails = findViewById(R.id.tvInsightsDetails);
-        tvAdvice = findViewById(R.id.tvAdvice);
-        tvStats = findViewById(R.id.tvStats);
-        btnExport = findViewById(R.id.btnExport);
-
-        findViewById(R.id.btnPeriodDay).setOnClickListener(v -> setPeriod(24));
-        findViewById(R.id.btnPeriodWeek).setOnClickListener(v -> setPeriod(24 * 7));
-        btnExport.setOnClickListener(v -> exportCsv());
-        findViewById(R.id.btnPush).setOnClickListener(v -> subscribePush());
-        findViewById(R.id.btnAddRoom).setOnClickListener(v -> startActivity(new Intent(this, NewRoomActivity.class)));
-        findViewById(R.id.btnAddSensorDevices).setOnClickListener(v -> startActivity(new Intent(this, AddSensorActivity.class)));
+        View.OnClickListener addRoom = v -> startActivity(new Intent(this, NewRoomActivity.class));
+        findViewById(R.id.btnAddRoom).setOnClickListener(addRoom);
+        findViewById(R.id.btnAddRoomEmpty).setOnClickListener(addRoom);
+        findViewById(R.id.btnAddSensor).setOnClickListener(v -> startActivity(new Intent(this, AddSensorActivity.class)));
+        findViewById(R.id.btnBell).setOnClickListener(v -> startActivity(new Intent(this, NotificationsActivity.class)));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (tvStatus != null) {
-            loadDevices();
-            BoardStatusCard.load(this, findViewById(R.id.boardStatusCard));
-            loadInsights();
-            loadAlerts();
-            loadRooms();
+        if (roomsList != null) {
+            load();
         }
     }
 
-    private void setPeriod(int hours) {
-        periodHours = hours;
-        loadInsights();
-    }
-
-    // ---------- Устройства ----------
-
-    private void loadDevices() {
-        tvStatus.setText(R.string.connection_checking_short);
-        ApiClient.get(this).getDevices().enqueue(new Callback<DevicesResponse>() {
-            @Override
-            public void onResponse(@NonNull Call<DevicesResponse> call, @NonNull Response<DevicesResponse> response) {
-                if (SessionGuard.handleUnauthorized(DevicesActivity.this, response)) {
-                    return;
-                }
-                if (!response.isSuccessful() || response.body() == null) {
-                    tvStatus.setText(ApiErrors.message(response, getString(R.string.devices_load_failed)));
-                    return;
-                }
-                showDevices(response.body().devices);
-                if (response.headers().get(com.example.roomclimate.network.OfflineCache.HEADER) != null) {
-                    tvStatus.setText(R.string.offline_data);
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<DevicesResponse> call, @NonNull Throwable t) {
-                tvStatus.setText(ApiErrors.network(t));
-            }
-        });
-    }
-
-    // ---------- Помещения (из макета) ----------
-
-    private void loadRooms() {
-        LinearLayout list = findViewById(R.id.roomsList);
-        ApiClient.get(this).getRooms().enqueue(Api.call(this, body -> {
-            list.removeAllViews();
-            com.google.gson.JsonArray rooms = body.getAsJsonArray("rooms");
-            for (com.google.gson.JsonElement e : rooms) {
-                com.google.gson.JsonObject room = e.getAsJsonObject();
-                com.google.gson.JsonArray devs = room.getAsJsonArray("devices");
-                StringBuilder sub = new StringBuilder(getResources().getQuantityString(
-                        R.plurals.rooms_sensors, devs.size(), devs.size()));
-                if (devs.size() > 0) {
-                    com.google.gson.JsonObject first = devs.get(0).getAsJsonObject();
-                    if (first.has("temperature") && !first.get("temperature").isJsonNull()) {
-                        sub.append(" · ").append(Units.temperature(this, first.get("temperature").getAsDouble()));
-                    }
-                    if (first.has("humidity") && !first.get("humidity").isJsonNull()) {
-                        sub.append(" · ").append(Math.round(first.get("humidity").getAsDouble())).append(" %");
+    private void load() {
+        ApiClient.get(this).getRooms().enqueue(Api.call(this, roomsBody -> {
+            rooms = Registry.array(roomsBody, "rooms");
+            ApiClient.get(this).getRegistrySensors().enqueue(Api.call(this, sensorsBody -> {
+                sensors.clear();
+                for (JsonObject s : Registry.list(Registry.array(sensorsBody, "sensors"))) {
+                    if ("mine".equals(Api.str(s, "status"))) {
+                        sensors.add(s);
                     }
                 }
-                boolean own = room.get("own").getAsBoolean();
-                Rows.add(list, R.drawable.ic_door, Api.str(room, "name"), sub,
-                        own ? v -> roomActions(room.get("id").getAsInt(), Api.str(room, "name")) : null);
-            }
-            int free = body.getAsJsonArray("unassigned").size();
-            if (free > 0) {
-                Rows.add(list, R.drawable.ic_wifi, getString(R.string.rooms_unassigned),
-                        getResources().getQuantityString(R.plurals.rooms_sensors, free, free),
-                        v -> startActivity(new Intent(this, AddSensorActivity.class)));
-            }
-            if (list.getChildCount() == 0) {
-                Rows.add(list, R.drawable.ic_add, getString(R.string.rooms_empty), null,
-                        v -> startActivity(new Intent(this, NewRoomActivity.class)));
-            }
+                render();
+            }));
         }));
     }
 
-    private void roomActions(int roomId, String name) {
-        String[] actions = {getString(R.string.room_rename), getString(R.string.room_delete)};
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(name)
-                .setItems(actions, (d, which) -> {
-                    if (which == 0) {
-                        android.widget.EditText input = new android.widget.EditText(this);
-                        input.setText(name);
-                        new androidx.appcompat.app.AlertDialog.Builder(this)
-                                .setTitle(R.string.room_rename)
-                                .setView(input)
-                                .setPositiveButton(R.string.save_changes, (d2, w) -> {
-                                    com.google.gson.JsonObject b = new com.google.gson.JsonObject();
-                                    b.addProperty("name", input.getText().toString().trim());
-                                    ApiClient.get(this).renameRoom(roomId, b).enqueue(Api.call(this, ok -> loadRooms()));
-                                })
-                                .setNegativeButton(android.R.string.cancel, null)
-                                .show();
-                    } else {
-                        new androidx.appcompat.app.AlertDialog.Builder(this)
-                                .setTitle(getString(R.string.room_delete_title, name))
-                                .setMessage(R.string.room_delete_text)
-                                .setPositiveButton(R.string.room_delete, (d2, w) ->
-                                        ApiClient.get(this).deleteRoom(roomId).enqueue(Api.call(this, ok -> loadRooms())))
-                                .setNegativeButton(android.R.string.cancel, null)
-                                .show();
-                    }
-                })
-                .show();
+    // ---------- Отрисовка ----------
+
+    private void render() {
+        int boards = 0;
+        for (JsonObject room : Registry.list(rooms)) {
+            if (board(room) != null) {
+                boards++;
+            }
+        }
+        tvSummary.setText(getString(R.string.dev_summary,
+                getResources().getQuantityString(R.plurals.count_rooms, rooms.size(), rooms.size()),
+                getResources().getQuantityString(R.plurals.count_boards, boards, boards),
+                getResources().getQuantityString(R.plurals.count_sensors, sensors.size(), sensors.size())));
+        int offline = 0;
+        for (JsonObject s : sensors) {
+            if (!Registry.bool(s, "online")) {
+                offline++;
+            }
+        }
+        tvSummaryStatus.setVisibility(sensors.isEmpty() ? View.GONE : View.VISIBLE);
+        tvSummaryStatus.setText(offline == 0 ? getString(R.string.dev_all_online) : getString(R.string.dev_some_offline, offline));
+        tvSummaryStatus.setTextColor(ContextCompat.getColor(this, offline == 0 ? R.color.green_primary : R.color.gray_text));
+        tvSummaryStatus.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                offline == 0 ? R.drawable.rc_dot_small_green : R.drawable.rc_dot_small_gray, 0, 0, 0);
+
+        boolean noRooms = rooms.size() == 0;
+        findViewById(R.id.cardEmptyRooms).setVisibility(noRooms ? View.VISIBLE : View.GONE);
+        findViewById(R.id.roomsBlock).setVisibility(noRooms ? View.GONE : View.VISIBLE);
+        findViewById(R.id.cardEmptySensors).setVisibility(sensors.isEmpty() ? View.VISIBLE : View.GONE);
+        ((TextView) findViewById(R.id.tvEmptySensors)).setText(
+                noRooms ? R.string.dev_empty_sensors_no_rooms : R.string.dev_empty_sensors_text);
+        findViewById(R.id.sensorsBlock).setVisibility(sensors.isEmpty() ? View.GONE : View.VISIBLE);
+        findViewById(R.id.addSensorBlock).setVisibility(noRooms ? View.GONE : View.VISIBLE);
+
+        renderRooms();
+        renderSensors();
     }
 
-    private void showDevices(List<DevicesResponse.Device> devices) {
-        devicesList.removeAllViews();
-        if (devices == null || devices.isEmpty()) {
-            tvStatus.setText(R.string.devices_empty);
+    /** Плата помещения: зарегистрированная в базе сервера из devices[] ответа /rooms. */
+    private static JsonObject board(JsonObject room) {
+        return AddSensorActivity.boardOf(room);
+    }
+
+    private void renderRooms() {
+        roomsList.removeAllViews();
+        ((TextView) findViewById(R.id.tvRoomsCount)).setText(String.valueOf(rooms.size()));
+        String active = ServerConfig.getDeviceId(this);
+        for (JsonObject room : Registry.list(rooms)) {
+            int id = room.get("id").getAsInt();
+            String name = Api.str(room, "name");
+            JsonObject board = board(room);
+            String boardId = board == null ? null : Api.str(board, "device_id");
+            int count = 0;
+            for (JsonObject s : sensors) {
+                if (Registry.roomId(s) == id) {
+                    count++;
+                }
+            }
+            StringBuilder sub = new StringBuilder(getResources().getQuantityString(R.plurals.count_sensors, count, count));
+            if (board != null) {
+                Double t = Registry.number(board, "temperature");
+                Double h = Registry.number(board, "humidity");
+                if (t != null) {
+                    sub.append(" · ").append(Units.temperature(this, t));
+                }
+                if (h != null) {
+                    sub.append(" · ").append(Math.round(h)).append(" %");
+                }
+                if (boardId.equals(active)) {
+                    sub.append(" · ").append(getString(R.string.dev_on_dashboard));
+                }
+            }
+            String title = getString(R.string.dev_room_title, name,
+                    board == null ? getString(R.string.dev_room_no_board) : Api.str(board, "title"));
+            boolean own = Registry.bool(room, "own");
+            View row = addRow(roomsList, R.drawable.ic_door, title, sub, null, false,
+                    v -> roomActions(room, board, own));
+            if (own && board != null) {
+                ImageButton add = row.findViewById(R.id.regAdd);
+                add.setVisibility(View.VISIBLE);
+                add.setContentDescription(getString(R.string.a11y_add_sensor_to, name));
+                add.setOnClickListener(v -> startActivity(new Intent(this, AddSensorActivity.class)
+                        .putExtra(AddSensorActivity.EXTRA_ROOM_ID, id)));
+            }
+        }
+    }
+
+    private void renderSensors() {
+        sensorsList.removeAllViews();
+        ((TextView) findViewById(R.id.tvSensorsCount)).setText(String.valueOf(sensors.size()));
+        for (JsonObject s : sensors) {
+            JsonObject room = Registry.obj(s, "room");
+            JsonObject board = Registry.obj(s, "board");
+            String sub = getString(R.string.dev_sensor_sub,
+                    room == null ? getString(R.string.dev_sensor_no_room) : Api.str(room, "name"),
+                    Api.str(s, "serial"), Api.str(s, "short_name"));
+            boolean online = Registry.bool(s, "online");
+            StringBuilder status = new StringBuilder(getString(online ? R.string.dev_online : R.string.dev_no_data));
+            String values = Registry.values(this, s);
+            if (!values.isEmpty()) {
+                status.append(" · ").append(values);
+            }
+            if (board != null) {
+                status.append(" · ").append(Registry.boardTitle(board));
+            }
+            View row = addRow(sensorsList, Registry.icon(Api.str(s, "type")), Api.str(s, "name"), sub,
+                    status, online, v -> sensorActions(s));
+            row.findViewById(R.id.regChevron).setVisibility(View.VISIBLE);
+        }
+    }
+
+    private View addRow(LinearLayout parent, int icon, CharSequence title, CharSequence sub,
+                        CharSequence status, boolean online, View.OnClickListener onClick) {
+        View row = LayoutInflater.from(this).inflate(R.layout.item_registry_row, parent, false);
+        ((ImageView) row.findViewById(R.id.regIcon)).setImageResource(icon);
+        ((TextView) row.findViewById(R.id.regTitle)).setText(title);
+        ((TextView) row.findViewById(R.id.regSub)).setText(sub);
+        TextView st = row.findViewById(R.id.regStatus);
+        if (status != null) {
+            st.setVisibility(View.VISIBLE);
+            st.setText(status);
+            st.setTextColor(ContextCompat.getColor(this, online ? R.color.green_primary : R.color.gray_text));
+            st.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    online ? R.drawable.rc_dot_small_green : R.drawable.rc_dot_small_gray, 0, 0, 0);
+        }
+        row.setOnClickListener(onClick);
+        row.setContentDescription(title + ". " + sub + (status == null ? "" : ". " + status));
+        parent.addView(row);
+        return row;
+    }
+
+    // ---------- Действия с помещением ----------
+
+    private void roomActions(JsonObject room, JsonObject board, boolean own) {
+        int id = room.get("id").getAsInt();
+        String name = Api.str(room, "name");
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        if (board != null) {
+            String boardId = Api.str(board, "device_id");
+            labels.add(getString(R.string.room_action_dashboard));
+            actions.add(() -> {
+                ServerConfig.save(this, ServerConfig.getBaseUrl(this), boardId);
+                Toast.makeText(this, getString(R.string.dashboard_selected, name), Toast.LENGTH_SHORT).show();
+                render();
+            });
+            labels.add(getString(R.string.room_action_status));
+            actions.add(() -> showBoardStatus(boardId));
+        }
+        if (own) {
+            if (board != null) {
+                labels.add(getString(R.string.room_action_add_sensor));
+                actions.add(() -> startActivity(new Intent(this, AddSensorActivity.class)
+                        .putExtra(AddSensorActivity.EXTRA_ROOM_ID, id)));
+            }
+            labels.add(getString(R.string.room_rename));
+            actions.add(() -> renameRoom(id, name));
+            labels.add(getString(R.string.room_delete));
+            actions.add(() -> deleteRoom(id, name));
+        }
+        if (labels.isEmpty()) {
             return;
         }
-        String active = ServerConfig.getDeviceId(this);
-        tvStatus.setText(getString(R.string.devices_count, devices.size()));
-        for (DevicesResponse.Device device : devices) {
-            TextView card = new TextView(this);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.topMargin = dp(8);
-            card.setLayoutParams(lp);
-            card.setBackgroundResource(R.drawable.bg_white_card);
-            card.setPadding(dp(16), dp(14), dp(16), dp(14));
-            card.setTextSize(15);
-            boolean isActive = device.deviceId != null && device.deviceId.equals(active);
-            String state = device.online
-                    ? getString(R.string.device_online, ago(device.ageSeconds))
-                    : getString(R.string.device_offline, ago(device.ageSeconds));
-            String role = "owner".equals(device.role) ? getString(R.string.role_owner)
-                    : "member".equals(device.role) ? getString(R.string.role_member)
-                    : getString(R.string.role_unclaimed);
-            card.setText(getString(R.string.device_row,
-                    isActive ? "● " : "○ ", device.deviceId, state) + "\n" + role);
-            card.setTextColor(ContextCompat.getColor(this,
-                    device.online ? R.color.dark_text : R.color.alert_text));
-            card.setContentDescription(getString(R.string.a11y_device_card, device.deviceId, state, role));
-            card.setOnClickListener(v -> showDeviceActions(device));
-            devicesList.addView(card);
-        }
-    }
-
-    /** Действия с платой: сделать основной, закрепить за собой, дать доступ по email. */
-    private void showDeviceActions(DevicesResponse.Device device) {
-        java.util.List<String> labels = new java.util.ArrayList<>();
-        java.util.List<Runnable> actions = new java.util.ArrayList<>();
-        labels.add(getString(R.string.action_select_device));
-        actions.add(() -> selectDevice(device.deviceId));
-        if (device.role == null) {
-            labels.add(getString(R.string.action_claim_device));
-            actions.add(() -> claimDevice(device.deviceId));
-        }
-        if ("owner".equals(device.role)) {
-            labels.add(getString(R.string.action_share_device));
-            actions.add(() -> askShareEmail(device.deviceId));
-        }
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(device.deviceId)
+        new AlertDialog.Builder(this)
+                .setTitle(name)
                 .setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
                 .show();
     }
 
-    private void claimDevice(String deviceId) {
-        ApiClient.get(this).claimDevice(deviceId).enqueue(simple(R.string.claim_done, () -> loadDevices()));
+    private void showBoardStatus(String boardId) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(20 * getResources().getDisplayMetrics().density);
+        card.setPadding(pad, pad / 2, pad, 0);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(card)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+        BoardStatusCard.load(this, card, boardId, () -> {
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+                new AlertDialog.Builder(this)
+                        .setTitle(R.string.room_action_status)
+                        .setMessage(R.string.room_status_missing)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show();
+            }
+        });
     }
 
-    private void askShareEmail(String deviceId) {
-        android.widget.EditText input = new android.widget.EditText(this);
-        input.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-                | android.text.InputType.TYPE_CLASS_TEXT);
-        input.setHint(R.string.share_email_hint);
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(R.string.action_share_device)
-                .setMessage(R.string.share_explain)
+    private void renameRoom(int id, String name) {
+        EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setText(name);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.room_rename)
                 .setView(input)
-                .setPositiveButton(R.string.share_ok, (d, w) -> {
-                    com.google.gson.JsonObject body = new com.google.gson.JsonObject();
-                    body.addProperty("email", input.getText().toString().trim());
-                    ApiClient.get(this).addMember(deviceId, body).enqueue(simple(R.string.share_done, null));
+                .setPositiveButton(R.string.save_changes, (d, w) -> {
+                    JsonObject body = new JsonObject();
+                    body.addProperty("name", input.getText().toString().trim());
+                    ApiClient.get(this).renameRoom(id, body).enqueue(Api.call(this, ok -> load()));
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
     }
 
-    /** Обработчик ответа: тост об успехе или текст ошибки сервера. */
-    private Callback<com.google.gson.JsonObject> simple(int okMessage, Runnable after) {
-        return new Callback<com.google.gson.JsonObject>() {
-            @Override
-            public void onResponse(@NonNull Call<com.google.gson.JsonObject> call,
-                                   @NonNull Response<com.google.gson.JsonObject> response) {
-                if (SessionGuard.handleUnauthorized(DevicesActivity.this, response)) {
-                    return;
-                }
-                Toast.makeText(DevicesActivity.this, response.isSuccessful() ? getString(okMessage)
-                        : ApiErrors.message(response, getString(R.string.devices_load_failed)), Toast.LENGTH_LONG).show();
-                if (response.isSuccessful() && after != null) {
-                    after.run();
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<com.google.gson.JsonObject> call, @NonNull Throwable t) {
-                Toast.makeText(DevicesActivity.this, ApiErrors.network(t), Toast.LENGTH_LONG).show();
-            }
-        };
+    private void deleteRoom(int id, String name) {
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.room_delete_title, name))
+                .setMessage(R.string.room_delete_text)
+                .setPositiveButton(R.string.room_delete, (d, w) ->
+                        ApiClient.get(this).deleteRoom(id).enqueue(Api.call(this, ok -> load())))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
-    // ---------- Журнал тревог и push ----------
+    // ---------- Действия с датчиком ----------
 
-    private void loadAlerts() {
-        ApiClient.get(this).getAlerts(ServerConfig.getDeviceId(this), 10).enqueue(new Callback<com.google.gson.JsonObject>() {
-            @Override
-            public void onResponse(@NonNull Call<com.google.gson.JsonObject> call,
-                                   @NonNull Response<com.google.gson.JsonObject> response) {
-                TextView tv = findViewById(R.id.tvAlerts);
-                if (!response.isSuccessful() || response.body() == null || !response.body().has("alerts")) {
-                    tv.setText(R.string.alerts_unavailable);
-                    return;
+    private void sensorActions(JsonObject s) {
+        String serial = Api.str(s, "serial");
+        String name = Api.str(s, "name");
+        int roomId = Registry.roomId(s);
+        JsonObject board = Registry.obj(s, "board");
+        List<String> labels = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        if (roomId > 0) {
+            labels.add(getString(R.string.sensor_action_rename));
+            actions.add(() -> renameSensor(serial, name, roomId));
+        }
+        if (board != null && !"climate".equals(Api.str(s, "type"))) {
+            // CO₂ / свет / движение — отдельная карточка на дашборде.
+            labels.add(getString(R.string.sensor_action_dashboard));
+            actions.add(() -> {
+                for (JsonObject m : Registry.list(Registry.array(s, "metrics"))) {
+                    Metrics.add(this, Api.str(board, "device_id"), Api.str(m, "code"));
                 }
-                com.google.gson.JsonArray list = response.body().getAsJsonArray("alerts");
-                if (list.size() == 0) {
-                    tv.setText(R.string.alerts_empty);
-                    return;
-                }
-                StringBuilder sb = new StringBuilder();
-                for (com.google.gson.JsonElement e : list) {
-                    com.google.gson.JsonObject a = e.getAsJsonObject();
-                    boolean open = !a.has("resolved_at") || a.get("resolved_at").isJsonNull();
-                    sb.append(open ? "⚠ " : "✓ ")
-                            .append(Formatters.time(a.get("created_at").getAsString()))
-                            .append(" — ").append(a.get("message").getAsString()).append('\n');
-                }
-                tv.setText(sb.toString().trim());
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<com.google.gson.JsonObject> call, @NonNull Throwable t) {
-                ((TextView) findViewById(R.id.tvAlerts)).setText(ApiErrors.network(t));
-            }
-        });
+                Toast.makeText(this, getString(R.string.metric_added, name), Toast.LENGTH_SHORT).show();
+            });
+        }
+        labels.add(getString(R.string.sensor_action_unbind));
+        actions.add(() -> new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.sensor_unbind_title, name))
+                .setMessage(R.string.sensor_unbind_text)
+                .setPositiveButton(R.string.sensor_unbind_ok, (d, w) ->
+                        ApiClient.get(this).unbindSensor(serial).enqueue(Api.call(this, ok -> load())))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show());
+        new AlertDialog.Builder(this)
+                .setTitle(name)
+                .setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
+                .show();
     }
 
-    /** Подписка на push: открывает приложение ntfy с темой стенда (или страницу установки). */
-    private void subscribePush() {
-        ApiClient.get(this).getNotifyInfo().enqueue(new Callback<com.google.gson.JsonObject>() {
-            @Override
-            public void onResponse(@NonNull Call<com.google.gson.JsonObject> call,
-                                   @NonNull Response<com.google.gson.JsonObject> response) {
-                com.google.gson.JsonObject info = response.body();
-                if (!response.isSuccessful() || info == null || !info.has("enabled") || !info.get("enabled").getAsBoolean()) {
-                    Toast.makeText(DevicesActivity.this, R.string.push_disabled, Toast.LENGTH_LONG).show();
-                    return;
-                }
-                Intent open = new Intent(Intent.ACTION_VIEW, Uri.parse(info.get("app_link").getAsString()));
-                try {
-                    startActivity(open);
-                } catch (android.content.ActivityNotFoundException e) {
-                    Toast.makeText(DevicesActivity.this, getString(R.string.push_install_ntfy,
-                            info.get("subscribe_url").getAsString()), Toast.LENGTH_LONG).show();
-                    startActivity(new Intent(Intent.ACTION_VIEW,
-                            Uri.parse("https://play.google.com/store/apps/details?id=io.heckel.ntfy")));
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<com.google.gson.JsonObject> call, @NonNull Throwable t) {
-                Toast.makeText(DevicesActivity.this, ApiErrors.network(t), Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    private void selectDevice(String deviceId) {
-        if (deviceId == null || deviceId.equals(ServerConfig.getDeviceId(this))) {
-            return;
-        }
-        ServerConfig.save(this, ServerConfig.getBaseUrl(this), deviceId);
-        Toast.makeText(this, getString(R.string.device_selected, deviceId), Toast.LENGTH_SHORT).show();
-        loadDevices();
-        loadInsights();
-    }
-
-    // ---------- Аналитика ----------
-
-    private void loadInsights() {
-        String deviceId = ServerConfig.getDeviceId(this);
-        ApiClient.get(this).getInsights(deviceId, periodHours).enqueue(new Callback<InsightsResponse>() {
-            @Override
-            public void onResponse(@NonNull Call<InsightsResponse> call, @NonNull Response<InsightsResponse> response) {
-                if (SessionGuard.handleUnauthorized(DevicesActivity.this, response)) {
-                    return;
-                }
-                if (!response.isSuccessful() || response.body() == null) {
-                    tvComfort.setText(R.string.value_placeholder);
-                    tvDetails.setText(ApiErrors.message(response, getString(R.string.devices_load_failed)));
-                    return;
-                }
-                showInsights(response.body());
-                if (periodHours == 24) {
-                    com.example.roomclimate.widget.ClimateWidget.push(DevicesActivity.this, response.body());
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<InsightsResponse> call, @NonNull Throwable t) {
-                tvDetails.setText(ApiErrors.network(t));
-            }
-        });
-    }
-
-    private void showInsights(InsightsResponse body) {
-        String comfort = body.comfort != null ? body.comfort.label : getString(R.string.value_placeholder);
-        tvComfort.setText(comfort);
-        boolean good = body.comfort != null && "comfort".equals(body.comfort.code);
-        tvComfort.setTextColor(ContextCompat.getColor(this, good ? R.color.green_primary : R.color.alert_text));
-
-        StringBuilder details = new StringBuilder();
-        if (body.dewPoint != null) {
-            details.append(getString(R.string.insight_dew_point, Units.temperature(this, body.dewPoint))).append('\n');
-        }
-        if (body.moldRisk != null) {
-            details.append(getString(R.string.insight_mold, body.moldRisk.label)).append('\n');
-        }
-        details.append(body.online
-                ? getString(R.string.device_online, ago(body.ageSeconds))
-                : getString(R.string.device_offline, ago(body.ageSeconds)));
-        tvDetails.setText(details.toString());
-
-        StringBuilder tips = new StringBuilder();
-        if (body.advice != null) {
-            for (String tip : body.advice) {
-                tips.append("• ").append(tip).append('\n');
-            }
-        }
-        tvAdvice.setText(tips.toString().trim());
-
-        StringBuilder stats = new StringBuilder(getString(
-                periodHours <= 24 ? R.string.stats_title_day : R.string.stats_title_week));
-        boolean any = false;
-        if (body.stats != null) {
-            for (Map.Entry<String, InsightsResponse.Stats> entry : body.stats.entrySet()) {
-                InsightsResponse.Stats s = entry.getValue();
-                if (s == null) {
-                    continue;
-                }
-                any = true;
-                // Температура — в единицах из «Единицы измерения» (°C / °F), как на дашборде.
-                boolean temp = "temperature".equals(entry.getKey());
-                String unit = "humidity".equals(entry.getKey()) ? "%"
-                        : temp ? Units.symbol(this)
-                        : Metrics.isExtra(entry.getKey()) ? Metrics.unit(entry.getKey()) : "";
-                stats.append('\n').append(getString(R.string.stats_row,
-                        Formatters.sensor(this, entry.getKey()),
-                        Formatters.number(temp ? Units.shown(this, s.min) : s.min),
-                        Formatters.number(temp ? Units.shown(this, s.avg) : s.avg),
-                        Formatters.number(temp ? Units.shown(this, s.max) : s.max), unit));
-            }
-        }
-        if (!any) {
-            stats.append('\n').append(getString(R.string.stats_empty));
-        }
-        tvStats.setText(stats.toString());
-    }
-
-    // ---------- Экспорт ----------
-
-    private void exportCsv() {
-        btnExport.setEnabled(false);
-        String deviceId = ServerConfig.getDeviceId(this);
-        ApiClient.get(this).exportCsv(deviceId, periodHours).enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
-                btnExport.setEnabled(true);
-                if (SessionGuard.handleUnauthorized(DevicesActivity.this, response)) {
-                    return;
-                }
-                if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(DevicesActivity.this,
-                            ApiErrors.message(response, getString(R.string.export_failed)), Toast.LENGTH_LONG).show();
-                    return;
-                }
-                try {
-                    File file = saveExport(deviceId, response.body());
-                    share(file);
-                } catch (IOException e) {
-                    Toast.makeText(DevicesActivity.this, R.string.export_failed, Toast.LENGTH_LONG).show();
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ResponseBody> call, @NonNull Throwable t) {
-                btnExport.setEnabled(true);
-                Toast.makeText(DevicesActivity.this, ApiErrors.network(t), Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    private File saveExport(String deviceId, ResponseBody body) throws IOException {
-        File dir = new File(getCacheDir(), "exports");
-        if (!dir.exists() && !dir.mkdirs()) {
-            throw new IOException("no dir");
-        }
-        String safe = deviceId.replaceAll("[^A-Za-z0-9_-]", "_");
-        File file = new File(dir, "roomclimate_" + safe + "_" + (periodHours <= 24 ? "24h" : "7d") + ".csv");
-        try (InputStream in = body.byteStream(); OutputStream out = new FileOutputStream(file)) {
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
-            }
-        }
-        return file;
-    }
-
-    private void share(File file) {
-        Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".files", file);
-        Intent send = new Intent(Intent.ACTION_SEND);
-        send.setType("text/csv");
-        send.putExtra(Intent.EXTRA_STREAM, uri);
-        send.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_subject));
-        send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(Intent.createChooser(send, getString(R.string.btn_export_csv)));
-    }
-
-    // ---------- Вспомогательное ----------
-
-    private String ago(Integer seconds) {
-        if (seconds == null) {
-            return getString(R.string.ago_never);
-        }
-        if (seconds < 60) {
-            return getString(R.string.ago_now);
-        }
-        if (seconds < 3600) {
-            return getString(R.string.ago_minutes, seconds / 60);
-        }
-        if (seconds < 86400) {
-            return getString(R.string.ago_hours, seconds / 3600);
-        }
-        return getString(R.string.ago_days, seconds / 86400);
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
+    private void renameSensor(String serial, String name, int roomId) {
+        EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setText(name);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.sensor_action_rename)
+                .setView(input)
+                .setPositiveButton(R.string.save_changes, (d, w) -> {
+                    JsonObject body = new JsonObject();
+                    body.addProperty("room_id", roomId);
+                    body.addProperty("name", input.getText().toString().trim());
+                    ApiClient.get(this).bindSensor(serial, body).enqueue(Api.call(this, ok -> load()));
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 }

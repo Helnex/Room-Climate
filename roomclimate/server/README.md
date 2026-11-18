@@ -64,6 +64,44 @@ powershell -ExecutionPolicy Bypass -File roomclimate\server\scripts\usb-connect.
 
 Если на компьютере остались старые контейнеры с тем же именем проекта `server`, запускайте
 со своим именем: `docker compose -p roomclimate up -d --build`.
+## Платы и датчики: база сервера и миграции
+
+Платы и датчики заводятся в базу **миграциями**, в приложении их только выбирают
+(«Новое помещение» → свободная плата, «Добавить датчик» → свободный датчик).
+
+| Таблица | Что хранит |
+|---|---|
+| `metric_types` | показатели, которые плата шлёт в `POST /telemetry` (`temperature`, `humidity`, `co2`…), название и единица. Показание с неизвестным типом сервер не принимает (422) |
+| `sensor_types` + `sensor_type_metrics` | виды датчиков (`climate` = DHT22: температура и влажность, `light`, `co2`, `motion`) и какие показатели они мерят |
+| `devices` | платы: `id` = `DEVICE_ID` сборщика, `serial` (номер), `title` («Плата № 0001»), `room_id` |
+| `sensor_registry` | датчики: номер, вид, к какой плате привязан (`device_id`, NULL — свободен), название в приложении |
+| `sensors` + `measurements` | показания: плата + показатель → значения (как раньше) |
+
+Показания датчика — это показания его платы по показателям его вида: сборщик ничего
+не знает про номера датчиков, он шлёт `{"device_id": "pi-1", "readings": [{"type": "light", ...}]}`.
+
+**Добавить датчик или плату:** новый файл `app/migrations/NNN_что_сделано.sql` (номер больше
+последнего), например `003_light_sensor.sql`:
+
+```sql
+INSERT INTO sensor_registry(serial, sensor_type) VALUES ('0148', 'light');
+-- плата:
+INSERT OR IGNORE INTO devices(id, name, created_at) VALUES ('pi-4', 'pi-4', strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now'));
+UPDATE devices SET serial = '0004', title = 'Плата № 0004', model = 'Raspberry Pi' WHERE id = 'pi-4';
+-- новый вид показаний (если датчик меряет то, чего ещё нет):
+-- INSERT INTO metric_types(code, name, unit, position) VALUES ('pressure', 'Давление', 'гПа', 6);
+```
+
+Применяется сама при перезапуске API (`docker compose -p roomclimate up -d --build`) или вручную:
+`docker compose -p roomclimate exec api python -m app.migrate` (`--status` — список применённых).
+Каждая миграция — одна транзакция: ошибка в файле откатывает его целиком. Уже применённые
+файлы не меняйте — исправление делается следующей миграцией.
+
+**Проверка цепочки без второй Raspberry Pi:** платы `pi-2` и `pi-3` заведены для генератора данных —
+`python simulate_collector.py https://<сервер> --device pi-2 --temp 18` (или `collector.py` с
+`SENSOR=fake DEVICE_ID=pi-2`). В приложении: «Устройства» → «Добавить помещение» (Склад1 + Плата № 0001,
+Склад2 + Плата № 0002) → «Добавить датчик» в каждое → «Показывать на дашборде».
+
 ## Аналитика, устройства, экспорт, подключение по QR
 
 Новые эндпоинты (код — `app/extras.py`, расчёты — `app/insights.py`, тесты — `python test_insights.py`):

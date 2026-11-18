@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import access, auth, board, db, extras, home, proxy, recovery
+from app import access, auth, board, db, extras, home, proxy, recovery, registry
 from app.config import settings
 from app.db import utc_now
 from app.errors import translate_http_detail, validation_message
@@ -279,6 +279,7 @@ def health():
 @app.post("/telemetry", dependencies=[Depends(device_access)])
 def post_telemetry(body: TelemetryIn):
     measured_at, late = board.parse_measured_at(body.measured_at)
+    registry.check_readings([item.type for item in body.readings])
     try:
         r = redis_client()
         r.ping()
@@ -448,6 +449,7 @@ app.include_router(recovery.build_router())
 # Помещения, датчики, профиль, семья, безопасность, помощь — app/home.py
 app.include_router(home.build_router(current_user))
 app.include_router(board.build_router(current_user, device_access))
+app.include_router(registry.build_router(current_user))
 
 
 @app.get("/")

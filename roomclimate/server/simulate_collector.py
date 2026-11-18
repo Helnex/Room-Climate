@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Имитация платы: POST раз в 10 с. python simulate_collector.py"""
+"""Имитация платы (генератор данных): POST раз в 10 с.
+
+    python simulate_collector.py                                # плата pi-1, локальный сервер
+    python simulate_collector.py http://127.0.0.1:8000 --device pi-2 --temp 18
+
+Платы pi-2 и pi-3 заведены в базу миграцией 002 («Плата № 0002/0003») — так можно
+проверить два помещения без второй Raspberry Pi."""
 from __future__ import annotations
 
 import json
@@ -9,7 +15,20 @@ import sys
 import time
 import urllib.request
 
-BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000"
+
+def _arg(name: str, default: str) -> str:
+    if name in sys.argv:
+        i = sys.argv.index(name)
+        if i + 1 < len(sys.argv):
+            return sys.argv[i + 1]
+    return default
+
+
+_positional = [a for i, a in enumerate(sys.argv[1:], 1)
+               if not a.startswith("--") and not sys.argv[i - 1].startswith("--")]
+BASE = _positional[0] if _positional else "http://127.0.0.1:8000"
+DEVICE_ID = _arg("--device", "pi-1")
+START_TEMP = float(_arg("--temp", "23.5"))
 INGEST_TOKEN = os.environ.get("INGEST_TOKEN", "")
 if not INGEST_TOKEN:
     # Секрет стенда, который создаёт scripts/start.ps1 в server/.env.
@@ -22,7 +41,7 @@ if not INGEST_TOKEN:
 
 def post(temp: float, hum: float) -> None:
     body = {
-        "device_id": "pi-1",
+        "device_id": DEVICE_ID,
         "readings": [
             {"type": "temperature", "value": round(temp, 1), "unit": "C"},
             {"type": "humidity", "value": round(hum, 1), "unit": "%"},
@@ -43,8 +62,8 @@ def post(temp: float, hum: float) -> None:
 
 
 def main() -> None:
-    print("Имитация DHT22 ->", BASE)
-    temp, hum = 23.5, 42.0
+    print(f"Имитация DHT22, плата {DEVICE_ID} ->", BASE)
+    temp, hum = START_TEMP, 42.0
     while True:
         temp += random.uniform(-0.4, 0.4)
         hum += random.uniform(-1.0, 1.0)

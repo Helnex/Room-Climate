@@ -86,6 +86,9 @@ def init_db() -> None:
         recovery.init(conn)
         home.init(conn)
         conn.commit()
+        from app import migrate  # реестр плат и датчиков и всё новое — миграциями (app/migrations)
+
+        migrate.apply(conn)
     finally:
         conn.close()
 

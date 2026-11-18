@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- «Выбор датчика» / «Выбор помещения» (макет): описание, список из базы сервера, кнопка. -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_default">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@+id/bottomNav"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <include layout="@layout/include_sub_header" />
+
+            <LinearLayout style="@style/RC.Content">
+
+                <TextView
+                    android:id="@+id/tvPickDesc"
+                    style="@style/RC.Text.Secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <!-- «Выбор помещения»: какой датчик привязываем -->
+                <LinearLayout
+                    android:id="@+id/pickSensorCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/rc_card_r12"
+                    android:orientation="vertical"
+                    android:padding="14dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/tvPickSensor"
+                        style="@style/RC.Text.BodyMedium"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+
+                    <TextView
+                        android:id="@+id/tvPickSensorSub"
+                        style="@style/RC.Text.Caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvPickGroup"
+                    style="@style/RC.Text.Group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp" />
+
+                <LinearLayout
+                    android:id="@+id/pickList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_white_card"
+                    android:orientation="vertical"
+                    android:padding="6dp" />
+
+                <Button
+                    android:id="@+id/btnPickExtra"
+                    style="@style/RC.Button.Secondary"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/dev_add_room"
+                    android:visibility="gone"
+                    app:backgroundTint="@null" />
+
+                <TextView
+                    android:id="@+id/tvPickNote"
+                    style="@style/RC.Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" />
+
+                <Button
+                    android:id="@+id/btnPick"
+                    style="@style/RC.Button.Primary"
+                    android:layout_marginTop="16dp"
+                    app:backgroundTint="@null" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <include
+        android:id="@+id/bottomNav"
+        layout="@layout/include_bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="84dp"
+        app:layout_constraintBottom_toBottomOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

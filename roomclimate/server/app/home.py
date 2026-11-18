@@ -59,6 +59,8 @@ def _clean_name(value: str) -> str:
 
 class RoomIn(BaseModel):
     name: str = Field(min_length=1, max_length=40)
+    # Плата из базы сервера для нового помещения (экран «Новое помещение»).
+    board_id: str | None = Field(default=None, max_length=64, pattern=SAFE_ID)
     @field_validator("name")
     @classmethod
     def _name(cls, value: str) -> str:
@@ -131,6 +133,7 @@ def _visible_devices(conn: sqlite3.Connection, uid: int) -> list[sqlite3.Row]:
     return conn.execute(
         """
         SELECT d.id AS device_id, d.name AS name, d.room_id AS room_id, d.kind AS kind,
+               d.serial AS serial, d.title AS title,
                (SELECT role FROM device_members WHERE device_id = d.id AND user_id = ?) AS role,
                EXISTS(SELECT 1 FROM device_members WHERE device_id = d.id) AS claimed
         FROM devices d ORDER BY d.id
@@ -171,6 +174,8 @@ def build_router(current_user) -> APIRouter:
                 item = {
                     "device_id": d["device_id"],
                     "name": d["name"] or d["device_id"],
+                    "serial": d["serial"],
+                    "title": d["title"] or (f"Плата № {d['serial']}" if d["serial"] else d["device_id"]),
                     "kind": d["kind"] or "climate",
                     "role": d["role"],
                     "temperature": latest.get("temperature"),
@@ -187,15 +192,37 @@ def build_router(current_user) -> APIRouter:
 
     @router.post("/rooms")
     def create_room(body: RoomIn, user=Depends(current_user)):
+        uid = int(user["id"])
         conn = db.connect()
         try:
+            board = None
+            if body.board_id is not None:
+                board = conn.execute("SELECT id, serial, title, room_id FROM devices WHERE id = ? AND serial IS NOT NULL",
+                                     (body.board_id,)).fetchone()
+                if board is None:
+                    raise HTTPException(status_code=404, detail="Плата не найдена в базе сервера")
+                role = access.role(conn, board["id"], uid)
+                if role is None and access.is_claimed(conn, board["id"]):
+                    raise HTTPException(status_code=409, detail="Плата уже занята")
+                if role == "member":
+                    raise HTTPException(status_code=403, detail="Это может сделать только владелец платы")
+                if role == "owner" and board["room_id"] is not None:
+                    raise HTTPException(status_code=409, detail="Плата уже стоит в другом помещении")
             try:
                 cur = conn.execute("INSERT INTO rooms(owner_id, name, created_at) VALUES (?, ?, ?)",
-                                   (int(user["id"]), body.name, db.utc_now()))
+                                   (uid, body.name, db.utc_now()))
             except sqlite3.IntegrityError as exc:
                 raise HTTPException(status_code=409, detail="Помещение с таким названием уже есть") from exc
+            if board is not None:
+                conn.execute("INSERT OR IGNORE INTO device_members(device_id, user_id, role, created_at)"
+                             " VALUES (?, ?, 'owner', ?)", (board["id"], uid, db.utc_now()))
+                conn.execute("UPDATE devices SET room_id = ? WHERE id = ?", (cur.lastrowid, board["id"]))
             conn.commit()
-            return {"id": cur.lastrowid, "name": body.name}
+            out = {"id": cur.lastrowid, "name": body.name}
+            if board is not None:
+                out["board"] = {"device_id": board["id"], "serial": board["serial"],
+                                "title": board["title"] or f"Плата № {board['serial']}"}
+            return out
         finally:
             conn.close()
 
