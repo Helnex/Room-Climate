@@ -72,7 +72,7 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_manage"
+            android:src="@drawable/ic_nav_device"
             android:importantForAccessibility="no"
             app:tint="@color/gray_text" />
         <TextView

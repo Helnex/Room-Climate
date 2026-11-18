@@ -104,7 +104,8 @@ def main():
 
         # Удаление помещения отвязывает платы
         assert c.delete(f"/rooms/{room}", headers=a).status_code == 200
-        assert c.get("/rooms", headers=a).json()["unassigned"][0]["device_id"] == "pi-7"
+        # В «без помещения» теперь и свободные платы из реестра (миграция 002) — ищем свою.
+        assert "pi-7" in [d["device_id"] for d in c.get("/rooms", headers=a).json()["unassigned"]]
         print("OK  удаление помещения: плата остаётся без помещения")
     print("Все проверки «Мой дом» пройдены")
 

@@ -6,6 +6,24 @@
         <item name="android:windowBackground">@color/bg_default</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+        <item name="colorAccent">@color/green_primary</item>
+        <item name="alertDialogTheme">@style/RC.Dialog</item>
+    </style>
+
+    <!-- Диалоги (переименовать, отвязать, удалить): как карточки макета -->
+    <style name="RC.Dialog" parent="ThemeOverlay.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/rc_dialog_bg</item>
+        <item name="colorAccent">@color/green_primary</item>
+        <item name="android:textColorPrimary">@color/dark_text</item>
+        <item name="buttonBarPositiveButtonStyle">@style/RC.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/RC.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/RC.DialogButton</item>
+    </style>
+
+    <style name="RC.DialogButton" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@color/green_primary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="Theme.RoomClimate" parent="Base.Theme.RoomClimate" />

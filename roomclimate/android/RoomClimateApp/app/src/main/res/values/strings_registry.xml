@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Платы и датчики из базы сервера (макет Figma): «Устройства», «Новое помещение»,
+     «Добавление датчика», «Выбор датчика», «Выбор помещения». -->
+<resources>
+    <plurals name="count_rooms">
+        <item quantity="one">%d помещение</item>
+        <item quantity="few">%d помещения</item>
+        <item quantity="many">%d помещений</item>
+        <item quantity="other">%d помещения</item>
+    </plurals>
+    <plurals name="count_boards">
+        <item quantity="one">%d плата</item>
+        <item quantity="few">%d платы</item>
+        <item quantity="many">%d плат</item>
+        <item quantity="other">%d платы</item>
+    </plurals>
+    <plurals name="count_sensors">
+        <item quantity="one">%d датчик</item>
+        <item quantity="few">%d датчика</item>
+        <item quantity="many">%d датчиков</item>
+        <item quantity="other">%d датчика</item>
+    </plurals>
+
+    <!-- «Устройства» -->
+    <string name="a11y_notifications">Уведомления</string>
+    <string name="dev_summary">%1$s · %2$s · %3$s</string>
+    <string name="dev_all_online">Все на связи</string>
+    <string name="dev_some_offline">Не на связи: %1$d</string>
+    <string name="dev_rooms_group">АКТИВНЫЕ ПОМЕЩЕНИЯ</string>
+    <string name="dev_sensors_group">АКТИВНЫЕ ДАТЧИКИ</string>
+    <string name="dev_empty_rooms_title">Помещений пока нет</string>
+    <string name="dev_empty_rooms_text">Добавьте комнату, чтобы объединить датчики и следить за её климатом.</string>
+    <string name="dev_empty_sensors_title">Датчики не подключены</string>
+    <string name="dev_empty_sensors_no_rooms">Сначала добавьте помещение. Затем здесь можно будет подключить первый датчик.</string>
+    <string name="dev_empty_sensors_text">Выберите датчик из базы сервера и помещение, к плате которого он подключён.</string>
+    <string name="dev_add_room">+  Добавить помещение</string>
+    <string name="dev_add_sensor">+  Добавить датчик</string>
+    <string name="dev_add_sensor_note">При добавлении можно выбрать любое помещение</string>
+    <string name="dev_room_title">%1$s · %2$s</string>
+    <string name="dev_room_no_board">Без платы</string>
+    <string name="dev_on_dashboard">на дашборде</string>
+    <string name="dev_sensor_sub">%1$s · №\u00A0%2$s · %3$s</string>
+    <string name="dev_sensor_no_room">Без помещения</string>
+    <string name="dev_online">На связи</string>
+    <string name="dev_no_data">Нет данных</string>
+    <string name="dev_offline_last">Не на связи · последние: %1$s</string>
+    <string name="room_action_export">Выгрузить показания за неделю (CSV)</string>
+    <string name="export_started">Готовлю выгрузку…</string>
+    <string name="dash_no_rooms">Нет помещений с платой</string>
+    <string name="dash_no_rooms_link">Добавить помещение в «Устройствах» ›</string>
+    <string name="a11y_add_sensor_to">Добавить датчик в «%1$s»</string>
+    <string name="room_action_dashboard">Показывать на дашборде</string>
+    <string name="room_action_status">Состояние платы</string>
+    <string name="room_action_add_sensor">Добавить датчик</string>
+    <string name="room_status_missing">Плата ещё не присылала своё состояние (температура процессора, Wi-Fi). Его отправляет сборщик на Raspberry Pi.</string>
+    <string name="dashboard_selected">«%1$s» теперь на дашборде и в графиках</string>
+    <string name="sensor_action_rename">Переименовать</string>
+    <string name="sensor_action_dashboard">Вынести на дашборд</string>
+    <string name="sensor_action_undashboard">Убрать с дашборда</string>
+    <string name="metric_removed_card">Карточка «%1$s» убрана с дашборда</string>
+    <string name="sensor_action_unbind">Отвязать от платы</string>
+    <string name="sensor_unbind_title">Отвязать «%1$s»?</string>
+    <string name="sensor_unbind_text">Датчик станет свободным — его можно будет добавить в другое помещение. Показания платы сохранятся.</string>
+    <string name="sensor_unbind_ok">Отвязать</string>
+
+    <!-- «Новое помещение» -->
+    <string name="nr_desc">Назовите помещение и выберите плату из базы сервера.</string>
+    <string name="nr_name_label">Название помещения</string>
+    <string name="nr_boards_group">ПЛАТЫ ИЗ БАЗЫ СЕРВЕРА · %1$d</string>
+    <string name="nr_boards_hint">Выберите свободную плату для помещения.</string>
+    <string name="board_free">Свободна</string>
+    <string name="board_mine_free">Ваша · без помещения</string>
+    <string name="board_taken">Занята</string>
+    <string name="board_taken_room">Занята · %1$s</string>
+    <string name="nr_taken_note">Занятые платы показаны для справки и недоступны для выбора.</string>
+    <string name="nr_create">Создать помещение</string>
+    <string name="nr_note">%1$s будет привязана к «%2$s».</string>
+    <string name="nr_note_no_name">Введите название — выбранная плата будет привязана к помещению.</string>
+    <string name="nr_no_free">Свободных плат нет. Новую плату добавляют в базу сервера миграцией.</string>
+    <string name="nr_pick_board">Выберите плату для помещения</string>
+    <string name="nr_created">Помещение «%1$s» создано</string>
+
+    <!-- «Добавление датчика» -->
+    <string name="as_title">Добавление датчика</string>
+    <string name="as_desc">Выберите зарегистрированный датчик и помещение. Поиск рядом с телефоном не нужен.</string>
+    <string name="as_group">ДАТЧИК ИЗ БАЗЫ СЕРВЕРА</string>
+    <string name="as_none">Датчик не выбран</string>
+    <string name="as_no_free">Свободных датчиков нет — новый датчик добавляют в базу сервера миграцией</string>
+    <string name="as_pick">Выбрать датчик ›</string>
+    <string name="as_pick_other">Выбрать другой датчик ›</string>
+    <string name="sensor_free">Свободен</string>
+    <string name="as_serial_state">№\u00A0%1$s · %2$s</string>
+    <string name="as_name_label">Название в приложении</string>
+    <string name="as_metric_label">Показатель · из записи датчика</string>
+    <string name="as_room_label">Помещение</string>
+    <string name="as_room_none">Выберите помещение ›</string>
+    <string name="as_room_value">%1$s ›</string>
+    <string name="as_button">Добавить датчик</string>
+    <string name="as_note">Датчик №\u00A0%1$s будет привязан к плате №\u00A0%2$s. Показатель определяется автоматически.</string>
+    <string name="as_note_empty">Показатель определяется автоматически из записи датчика на сервере.</string>
+    <string name="as_need_sensor">Сначала выберите датчик</string>
+    <string name="as_need_room">Выберите помещение</string>
+    <string name="as_done">Датчик «%1$s» добавлен</string>
+    <string name="metric_with_unit">%1$s, %2$s</string>
+
+    <!-- «Выбор датчика» -->
+    <string name="ps_title">Выбор датчика</string>
+    <string name="ps_desc">Зарегистрированные датчики из базы сервера. Выберите свободный датчик.</string>
+    <string name="ps_counts">ВСЕ ДАТЧИКИ · %1$d   /   СВОБОДНЫ · %2$d</string>
+    <string name="ps_free_sub">№\u00A0%1$s · %2$s · Свободен</string>
+    <string name="ps_mine_sub">№\u00A0%1$s · %2$s · %3$s</string>
+    <string name="ps_taken_sub">№\u00A0%1$s · Занят</string>
+    <string name="ps_note">Уже привязанные датчики недоступны для выбора. Тип и единицы берутся из записи сервера.</string>
+    <string name="ps_button">Выбрать датчик №\u00A0%1$s</string>
+    <string name="ps_button_none">Выберите датчик</string>
+
+    <!-- «Выбор помещения» -->
+    <string name="pr_title">Выбор помещения</string>
+    <string name="pr_desc">Выберите помещение. Датчик будет привязан к плате этого помещения.</string>
+    <string name="pr_sensor">%1$s · Датчик №\u00A0%2$s</string>
+    <string name="pr_sensor_sub">%1$s · Из базы сервера</string>
+    <string name="pr_group">ПОМЕЩЕНИЯ И ПЛАТЫ · %1$d</string>
+    <string name="pr_no_board">Без платы — датчик подключить некуда</string>
+    <string name="pr_note">При создании помещения сначала выбирается свободная плата из базы сервера.</string>
+    <string name="pr_button">Выбрать «%1$s»</string>
+    <string name="pr_button_none">Выберите помещение</string>
+</resources>

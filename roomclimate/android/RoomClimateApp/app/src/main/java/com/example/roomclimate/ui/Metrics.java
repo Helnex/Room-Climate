@@ -132,6 +132,20 @@ public final class Metrics {
         save(context, set);
     }
 
+    /** Убрать карточки платы по этим показателям (датчик отвязали от платы). */
+    public static void removeAll(Context context, String deviceId, java.util.Collection<String> types) {
+        Set<String> set = new LinkedHashSet<>(onDashboard(context));
+        for (String type : types) {
+            set.remove(entry(deviceId, type));
+        }
+        save(context, set);
+    }
+
+    /** Другой аккаунт — свои карточки на дашборде, чужие не показываем. */
+    public static void clear(Context context) {
+        ServerConfig.prefs(context).edit().remove(KEY).apply();
+    }
+
     private static void save(Context context, Set<String> set) {
         ServerConfig.prefs(context).edit().putString(KEY, android.text.TextUtils.join("\n", set)).apply();
     }

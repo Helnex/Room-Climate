@@ -160,4 +160,19 @@ public interface ApiService {
     /** Состояние Raspberry Pi: температура процессора, Wi-Fi, аптайм, версия, буфер (404 — не присылала). */
     @GET("devices/{device_id}/status")
     Call<com.google.gson.JsonObject> getBoardStatus(@retrofit2.http.Path("device_id") String deviceId);
+
+    // ---- Платы и датчики из базы сервера (заводятся миграциями, app/registry.py) ----
+
+    @GET("registry/boards")
+    Call<com.google.gson.JsonObject> getRegistryBoards();
+
+    @GET("registry/sensors")
+    Call<com.google.gson.JsonObject> getRegistrySensors();
+
+    @POST("registry/sensors/{serial}/bind")
+    Call<com.google.gson.JsonObject> bindSensor(@retrofit2.http.Path("serial") String serial,
+                                                @Body com.google.gson.JsonObject body);
+
+    @retrofit2.http.DELETE("registry/sensors/{serial}/bind")
+    Call<com.google.gson.JsonObject> unbindSensor(@retrofit2.http.Path("serial") String serial);
 }

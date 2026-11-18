@@ -35,6 +35,19 @@
                 android:textColor="@color/dark_text"
                 android:textSize="28sp" />
 
+            <!-- Какое помещение показано: «Sklad1 · Плата № 0002» (ActiveRoom) -->
+            <TextView
+                android:id="@+id/tvRoomName"
+                style="@style/RC.Text.BodyMedium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:background="?attr/selectableItemBackground"
+                android:minHeight="32dp"
+                android:gravity="center_vertical"
+                android:textColor="@color/green_primary"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/tvConnection"
                 android:layout_width="match_parent"

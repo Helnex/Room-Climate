@@ -97,9 +97,47 @@ public class DashboardActivity extends AppCompatActivity {
             return;
         }
 
-        String deviceId = ServerConfig.getDeviceId(this);
         tvConnection.setText(getString(R.string.connection_checking, ServerConfig.getBaseUrl(this)));
+        // Только плата из своих помещений: после смены аккаунта не показываем чужие показания.
+        ActiveRoom.resolve(this, (deviceId, room, title, known) -> {
+            if (known && deviceId == null) {
+                showNoRooms();
+                return;
+            }
+            showRoom(room, title);
+            loadSettings(deviceId);
+        });
+    }
 
+    private void showRoom(String room, String title) {
+        TextView tv = findViewById(R.id.tvRoomName);
+        if (room == null && title == null) {
+            tv.setVisibility(android.view.View.GONE);
+            return;
+        }
+        tv.setVisibility(android.view.View.VISIBLE);
+        tv.setText(room == null ? title : getString(R.string.dev_room_title, room, title));
+        tv.setOnClickListener(v -> startActivity(new android.content.Intent(this, DevicesActivity.class)));
+    }
+
+    /** Помещений с платой нет — вместо чужих или старых показаний подсказка. */
+    private void showNoRooms() {
+        TextView tv = findViewById(R.id.tvRoomName);
+        tv.setVisibility(android.view.View.VISIBLE);
+        tv.setText(R.string.dash_no_rooms_link);
+        tv.setOnClickListener(v -> startActivity(new android.content.Intent(this, DevicesActivity.class)));
+        tvTemperature.setText(R.string.value_placeholder);
+        tvHumidity.setText(R.string.value_placeholder);
+        tvStatus.setText(R.string.dash_no_rooms);
+        tvStatus.setTextColor(ContextCompat.getColor(this, R.color.gray_text));
+        tvUpdated.setText(R.string.updated_never);
+        tvThresholds.setText("");
+        tvConnection.setText(getString(R.string.connection_no_data, ServerConfig.getBaseUrl(this)));
+        tvConnection.setTextColor(ContextCompat.getColor(this, R.color.gray_text));
+        findViewById(R.id.extraMetrics).setVisibility(android.view.View.GONE);
+    }
+
+    private void loadSettings(String deviceId) {
         ApiClient.get(this).getSettings(deviceId).enqueue(new Callback<SettingsResponse>() {
             @Override
             public void onResponse(@NonNull Call<SettingsResponse> call,
@@ -239,7 +277,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     private void showExtra(TextView sub, String type, Reading reading, String deviceId, boolean main) {
         String value = Metrics.value(this, type, reading == null ? null : reading.value);
-        sub.setText(main ? value : getString(R.string.metric_on_board, value, deviceId));
+        sub.setText(main ? value : getString(R.string.metric_on_board, value, ActiveRoom.title(this, deviceId)));
     }
 
     private void applyThreshold(double temperature) {

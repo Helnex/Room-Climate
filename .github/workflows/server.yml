@@ -49,6 +49,9 @@ jobs:
       - name: Unit tests (board)
         run: python3 test_board.py
 
+      - name: Unit tests (registry and migrations)
+        run: python3 test_registry.py
+
       - name: Build and start stack
         run: docker compose up --build -d
 

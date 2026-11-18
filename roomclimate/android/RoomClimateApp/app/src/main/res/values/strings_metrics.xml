@@ -12,7 +12,7 @@
     <string name="metric_available">Можно добавить</string>
     <string name="metric_tap_add">%1$s · нажмите, чтобы добавить</string>
     <string name="metric_waiting">%1$s · ждём первые показания</string>
-    <string name="metric_added">«%1$s» добавлено на дашборд</string>
+    <string name="metric_added">Карточка «%1$s» добавлена на дашборд</string>
     <string name="metric_remove_title">Убрать «%1$s» с дашборда?</string>
     <string name="metric_remove_ok">Убрать</string>
     <string name="metric_on_board">%1$s · %2$s</string>

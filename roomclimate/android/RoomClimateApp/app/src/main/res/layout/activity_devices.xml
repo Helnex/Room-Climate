@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- «Устройства» (макет Figma): сводка, активные помещения (с платами) и датчики из базы
+     сервера, «Добавить помещение» / «Добавить датчик». Пустое состояние — две карточки. -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -20,241 +22,252 @@
             android:paddingEnd="20dp"
             android:paddingBottom="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="@string/header_label"
-                android:textColor="@color/gray_text"
-                android:textSize="12sp" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/devices_title"
-                android:textColor="@color/dark_text"
-                android:textSize="28sp" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvDevicesStatus"
+                    <TextView
+                        style="@style/RC.Text.Overline"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/header_label" />
+
+                    <TextView
+                        style="@style/RC.Text.Title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:accessibilityHeading="true"
+                        android:text="@string/devices_title" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btnBell"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:background="@drawable/rc_circle_white"
+                    android:contentDescription="@string/a11y_notifications"
+                    android:padding="11dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_bell"
+                    app:tint="@color/dark_text" />
+            </LinearLayout>
+
+            <!-- Сводка: «3 помещения · 3 платы · 4 датчика · Все на связи» -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/connection_checking_short"
-                android:textColor="@color/gray_text"
-                android:textSize="12sp" />
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_home_card"
+                android:gravity="center_vertical"
+                android:minHeight="64dp"
+                android:orientation="horizontal"
+                android:padding="14dp">
 
-            <!-- Список плат: заполняется из кода -->
-            <LinearLayout
-                android:id="@+id/devicesList"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="vertical" />
+                <ImageView
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="@drawable/rc_circle_white"
+                    android:importantForAccessibility="no"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_home_outline"
+                    app:tint="@color/green_primary" />
 
-            <!-- Состояние Raspberry Pi основной платы (заполняет BoardStatusCard) -->
+                <TextView
+                    android:id="@+id/tvSummary"
+                    style="@style/RC.Text.Secondary"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="@string/connection_checking_short"
+                    android:textColor="@color/green_primary" />
+
+                <TextView
+                    android:id="@+id/tvSummaryStatus"
+                    style="@style/RC.Text.Accent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:drawablePadding="5dp"
+                    android:gravity="center_vertical"
+                    android:visibility="gone"
+                    app:drawableStartCompat="@drawable/rc_dot_small_green" />
+            </LinearLayout>
+
+            <!-- Пусто: помещений нет -->
             <LinearLayout
-                android:id="@+id/boardStatusCard"
+                android:id="@+id/cardEmptyRooms"
                 style="@style/RC.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="16dp"
                 android:orientation="vertical"
-                android:visibility="gone" />
+                android:padding="18dp"
+                android:visibility="gone">
 
-            <!-- Из макета: помещения и добавление датчика (заполняет DevicesActivity.loadRooms) -->
-            <TextView
-                android:id="@+id/tvRoomsTitle"
-                style="@style/RC.Text.Group"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="@string/rooms_group" />
+                <TextView
+                    style="@style/RC.Text.Section"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dev_empty_rooms_title" />
 
+                <TextView
+                    style="@style/RC.Text.Secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/dev_empty_rooms_text" />
+
+                <Button
+                    android:id="@+id/btnAddRoomEmpty"
+                    style="@style/RC.Button.Secondary"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/dev_add_room"
+                    app:backgroundTint="@null" />
+            </LinearLayout>
+
+            <!-- Помещения -->
             <LinearLayout
-                android:id="@+id/roomsList"
+                android:id="@+id/roomsBlock"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_white_card"
                 android:orientation="vertical"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp" />
+                android:visibility="gone">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/RC.Text.Group"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/dev_rooms_group" />
+
+                    <TextView
+                        android:id="@+id/tvRoomsCount"
+                        style="@style/RC.Text.Accent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/roomsList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_white_card"
+                    android:orientation="vertical"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp" />
 
                 <Button
                     android:id="@+id/btnAddRoom"
                     style="@style/RC.Button.Secondary"
-                    android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
-                    android:layout_weight="1"
-                    android:text="@string/room_add"
-                    app:backgroundTint="@null" />
-
-                <Button
-                    android:id="@+id/btnAddSensorDevices"
-                    style="@style/RC.Button.Primary"
-                    android:layout_width="0dp"
-                    android:layout_marginStart="6dp"
-                    android:layout_weight="1"
-                    android:text="@string/sensor_add_button"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/dev_add_room"
                     app:backgroundTint="@null" />
             </LinearLayout>
 
-            <TextView
-                style="@style/RC.Text.Caption"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/rooms_note" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:accessibilityHeading="true"
-                android:text="@string/insights_title"
-                android:textColor="@color/dark_text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
+            <!-- Пусто: датчиков нет -->
             <LinearLayout
+                android:id="@+id/cardEmptySensors"
+                style="@style/RC.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_white_card"
+                android:layout_marginTop="16dp"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp"
+                android:visibility="gone">
 
                 <TextView
-                    android:id="@+id/tvComfort"
+                    style="@style/RC.Text.Section"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/value_placeholder"
-                    android:textColor="@color/green_primary"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:text="@string/dev_empty_sensors_title" />
 
                 <TextView
-                    android:id="@+id/tvInsightsDetails"
+                    android:id="@+id/tvEmptySensors"
+                    style="@style/RC.Text.Secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/dev_empty_sensors_no_rooms" />
+            </LinearLayout>
+
+            <!-- Датчики -->
+            <LinearLayout
+                android:id="@+id/sensorsBlock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/RC.Text.Group"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/dev_sensors_group" />
+
+                    <TextView
+                        android:id="@+id/tvSensorsCount"
+                        style="@style/RC.Text.Accent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/sensorsList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:lineSpacingExtra="4dp"
-                    android:textColor="@color/dark_text"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/tvAdvice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:lineSpacingExtra="4dp"
-                    android:textColor="@color/gray_text"
-                    android:textSize="14sp" />
+                    android:background="@drawable/bg_white_card"
+                    android:orientation="vertical"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp" />
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/addSensorBlock"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:visibility="gone">
 
                 <Button
-                    android:id="@+id/btnPeriodDay"
-                    android:layout_width="0dp"
-                    android:layout_height="44dp"
-                    android:layout_marginEnd="6dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_btn_secondary"
-                    android:text="@string/period_day"
-                    android:textAllCaps="false"
-                    android:textColor="@color/dark_text"
+                    android:id="@+id/btnAddSensor"
+                    style="@style/RC.Button.Primary"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/dev_add_sensor"
                     app:backgroundTint="@null" />
 
-                <Button
-                    android:id="@+id/btnPeriodWeek"
-                    android:layout_width="0dp"
-                    android:layout_height="44dp"
-                    android:layout_marginStart="6dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_btn_secondary"
-                    android:text="@string/period_week"
-                    android:textAllCaps="false"
-                    android:textColor="@color/dark_text"
-                    app:backgroundTint="@null" />
+                <TextView
+                    style="@style/RC.Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_horizontal"
+                    android:text="@string/dev_add_sensor_note" />
             </LinearLayout>
-
-            <TextView
-                android:id="@+id/tvStats"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_white_card"
-                android:lineSpacingExtra="4dp"
-                android:padding="16dp"
-                android:textColor="@color/dark_text"
-                android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/btnExport"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="16dp"
-                android:background="@drawable/bg_btn_primary"
-                android:text="@string/btn_export_csv"
-                android:textAllCaps="false"
-                android:textColor="@color/white"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                app:backgroundTint="@null" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:accessibilityHeading="true"
-                android:text="@string/alerts_title"
-                android:textColor="@color/dark_text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvAlerts"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_white_card"
-                android:lineSpacingExtra="4dp"
-                android:padding="16dp"
-                android:text="@string/connection_checking_short"
-                android:textColor="@color/dark_text"
-                android:textSize="13sp" />
-
-            <Button
-                android:id="@+id/btnPush"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_btn_secondary"
-                android:text="@string/btn_push"
-                android:textAllCaps="false"
-                android:textColor="@color/dark_text"
-                android:textSize="15sp"
-                app:backgroundTint="@null" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/devices_connect_hint"
-                android:textColor="@color/gray_text"
-                android:textSize="12sp" />
         </LinearLayout>
     </ScrollView>
 

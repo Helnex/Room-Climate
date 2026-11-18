@@ -115,7 +115,7 @@
     <string name="security_logout_others">Выйти на других устройствах</string>
     <string name="security_logged_out_others">Другие входы закрыты</string>
     <string name="security_history">История измерений</string>
-    <string name="security_history_sub">Выгрузка показаний в CSV — на экране «Устройства»</string>
+    <string name="security_history_sub">Выгрузка показаний в CSV — «Устройства» → помещение</string>
     <string name="security_note">Удалить аккаунт и все данные можно в «Аккаунте».</string>
 
     <!-- Уведомления -->

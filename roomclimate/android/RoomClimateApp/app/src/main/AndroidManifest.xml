@@ -56,6 +56,13 @@
             android:name=".ui.AddSensorActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <!-- Выбор датчика и помещения из базы сервера (реестр плат и датчиков) -->
+        <activity
+            android:name=".ui.SensorPickActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.RoomPickActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.AddMetricActivity"
             android:exported="false"
