@@ -42,6 +42,7 @@ def init(conn: sqlite3.Connection) -> None:
     db._ensure_column(conn, "devices", "kind", "TEXT")
     db._ensure_column(conn, "sessions", "user_agent", "TEXT")
     db._ensure_column(conn, "sessions", "ip", "TEXT")
+    db._ensure_column(conn, "users", "usage_mode", "TEXT NOT NULL DEFAULT 'home'")
 
 
 def remember_session_client(conn: sqlite3.Connection, token_hash: str, request: Request) -> None:
@@ -123,9 +124,48 @@ class SupportIn(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
 
 
+class ModeIn(BaseModel):
+    mode: str = Field(pattern="^(home|warehouse)$")
+
+
 def _token_hash(authorization: str | None) -> str:
     _, _, token = (authorization or "").partition(" ")
     return auth.hash_token(token.strip())
+
+
+def _usage_mode(conn: sqlite3.Connection, uid: int) -> str:
+    row = conn.execute("SELECT usage_mode FROM users WHERE id = ?", (uid,)).fetchone()
+    mode = row["usage_mode"] if row is not None else None
+    return mode if mode in ("home", "warehouse") else "home"
+
+
+def _access_role(conn: sqlite3.Connection, uid: int) -> tuple[str, str]:
+    """owner — сам настраивает дом или склады. member — видит помещения того, кто пригласил."""
+    owned = conn.execute(
+        "SELECT 1 FROM device_members WHERE user_id = ? AND role = 'owner' LIMIT 1", (uid,)
+    ).fetchone()
+    if owned is not None:
+        return "owner", _usage_mode(conn, uid)
+    host = conn.execute(
+        """
+        SELECT u.id AS id, u.usage_mode AS usage_mode
+        FROM device_members mine
+        JOIN device_members own ON own.device_id = mine.device_id AND own.role = 'owner'
+        JOIN users u ON u.id = own.user_id
+        WHERE mine.user_id = ? AND mine.role = 'member'
+        LIMIT 1
+        """,
+        (uid,),
+    ).fetchone()
+    if host is None:
+        return "owner", _usage_mode(conn, uid)
+    mode = host["usage_mode"] if host["usage_mode"] in ("home", "warehouse") else "home"
+    return "member", mode
+
+
+def _access_payload(conn: sqlite3.Connection, user) -> dict:
+    role, mode = _access_role(conn, int(user["id"]))
+    return {"role": role, "mode": mode, "can_edit": role != "member"}
 
 
 def _visible_devices(conn: sqlite3.Connection, uid: int) -> list[sqlite3.Row]:
@@ -186,9 +226,10 @@ def build_router(current_user) -> APIRouter:
                     "readings": {k: v for k, v in latest.items() if k != "measured_at"},
                 }
                 (rooms[d["room_id"]]["devices"] if d["room_id"] in rooms else unassigned).append(item)
+            role, mode = _access_role(conn, uid)
         finally:
             conn.close()
-        return {"rooms": list(rooms.values()), "unassigned": unassigned}
+        return {"rooms": list(rooms.values()), "unassigned": unassigned, "role": role, "mode": mode}
 
     @router.post("/rooms")
     def create_room(body: RoomIn, user=Depends(current_user)):
@@ -356,22 +397,39 @@ def build_router(current_user) -> APIRouter:
         uid = int(user["id"])
         conn = db.connect()
         try:
+            role, mode = _access_role(conn, uid)
+            owner_id = uid
+            if role == "member":
+                host = conn.execute(
+                    """
+                    SELECT own.user_id AS id
+                    FROM device_members mine
+                    JOIN device_members own ON own.device_id = mine.device_id AND own.role = 'owner'
+                    WHERE mine.user_id = ? AND mine.role = 'member'
+                    LIMIT 1
+                    """,
+                    (uid,),
+                ).fetchone()
+                if host is not None:
+                    owner_id = int(host["id"])
+            owner = db.get_user_by_id(conn, owner_id)
             owned = [r["device_id"] for r in conn.execute(
-                "SELECT device_id FROM device_members WHERE user_id = ? AND role = 'owner'", (uid,))]
+                "SELECT device_id FROM device_members WHERE user_id = ? AND role = 'owner'", (owner_id,))]
             members = []
             if owned:
                 marks = ",".join("?" * len(owned))
                 members = [dict(r) for r in conn.execute(
                     f"SELECT DISTINCT u.email, u.name, u.surname FROM device_members dm JOIN users u ON u.id = dm.user_id"
                     f" WHERE dm.device_id IN ({marks}) AND dm.role = 'member' ORDER BY u.name", owned)]
+            return {
+                "devices": len(owned),
+                "role": role,
+                "mode": mode,
+                "people": [{"email": owner["email"], "name": owner["name"], "surname": owner["surname"], "role": "owner"}]
+                          + [{**m, "role": "member"} for m in members],
+            }
         finally:
             conn.close()
-        me = auth.user_payload(user)
-        return {
-            "devices": len(owned),
-            "people": [{"email": me["email"], "name": me["name"], "surname": me["surname"], "role": "owner"}]
-                      + [{**m, "role": "member"} for m in members],
-        }
 
     @router.post("/family")
     def family_invite(body: EmailIn, user=Depends(current_user)):
@@ -412,6 +470,28 @@ def build_router(current_user) -> APIRouter:
         finally:
             conn.close()
         return {"status": "ok"}
+
+    @router.get("/access")
+    def access_settings(user=Depends(current_user)):
+        conn = db.connect()
+        try:
+            return _access_payload(conn, user)
+        finally:
+            conn.close()
+
+    @router.put("/access")
+    def set_access_mode(body: ModeIn, user=Depends(current_user)):
+        uid = int(user["id"])
+        conn = db.connect()
+        try:
+            role, _mode = _access_role(conn, uid)
+            if role == "member":
+                raise HTTPException(status_code=403, detail="Режим задаёт владелец. Вы видите его помещения.")
+            conn.execute("UPDATE users SET usage_mode = ? WHERE id = ?", (body.mode, uid))
+            conn.commit()
+            return _access_payload(conn, user)
+        finally:
+            conn.close()
 
     # ---------- Помощь ----------
 

@@ -74,6 +74,11 @@ def main():
         assert [p["role"] for p in fam["people"]] == ["owner", "member"], fam
         assert any(x["id"] == room for x in c.get("/rooms", headers=b).json()["rooms"]), "участник видит помещение"
         assert c.get("/settings?device_id=pi-7", headers=b).status_code == 200
+        assert fam.get("mode") == "home" and fam.get("role") == "owner", fam
+        assert c.put("/access", json={"mode": "warehouse"}, headers=a).json()["mode"] == "warehouse"
+        assert c.get("/family", headers=b).json()["role"] == "member"
+        assert c.put("/access", json={"mode": "home"}, headers=b).status_code == 403
+        assert c.put("/access", json={"mode": "home"}, headers=a).status_code == 200
         assert c.delete("/family?email=member@example.com", headers=a).status_code == 200
         assert c.get("/settings?device_id=pi-7", headers=b).status_code == 404
         print("OK  семья: приглашение на все платы владельца и отзыв")

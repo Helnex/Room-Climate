@@ -41,8 +41,11 @@
                 </LinearLayout>
 
                 <ImageView
+                    android:id="@+id/btnHeaderBell"
                     android:layout_width="42dp" android:layout_height="42dp"
                     android:background="@drawable/bg_white_card"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:padding="11dp"
                     android:src="@android:drawable/ic_popup_reminder"
                     app:tint="@color/dark_text" />
@@ -55,13 +58,28 @@
                 android:padding="16dp" android:gravity="center_vertical" android:orientation="horizontal">
 
                 <!-- Аватарка -->
-                <TextView
-                    android:id="@+id/tvAvatar"
-                    android:layout_width="50dp" android:layout_height="50dp"
-                    android:background="@drawable/bg_circle_green"
-                    android:gravity="center"
-                    tools:text="ДМ" android:textColor="@color/green_primary"
-                    android:textSize="18sp" android:textStyle="bold" />
+                <FrameLayout
+                    android:layout_width="50dp"
+                    android:layout_height="50dp">
+
+                    <TextView
+                        android:id="@+id/tvAvatar"
+                        android:layout_width="50dp" android:layout_height="50dp"
+                        android:background="@drawable/bg_circle_green"
+                        android:gravity="center"
+                        tools:text="ДМ" android:textColor="@color/green_primary"
+                        android:textSize="18sp" android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/ivAvatarEmpty"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:background="@drawable/bg_circle_green"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_nav_person"
+                        android:visibility="gone"
+                        app:tint="@color/green_primary" />
+                </FrameLayout>
 
                 <LinearLayout
                     android:layout_width="0dp" android:layout_height="wrap_content"
@@ -94,8 +112,8 @@
                 <LinearLayout
                     android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/my_home" android:textColor="@color/dark_text" android:textSize="15sp" android:textStyle="bold" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/my_home_desc" android:textColor="@color/green_primary" android:textSize="11sp" />
+                    <TextView android:id="@+id/tvHomeTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/my_home" android:textColor="@color/dark_text" android:textSize="15sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/tvHomeDesc" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/home_empty" android:textColor="@color/green_primary" android:textSize="11sp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -111,7 +129,7 @@
                     <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_circle_green" android:padding="8dp" android:src="@android:drawable/ic_popup_reminder" app:tint="@color/green_primary" />
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/climate_notifications" android:textColor="@color/dark_text" android:textSize="14sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/climate_notifications_desc" android:textColor="@color/gray_text" android:textSize="11sp" />
+                        <TextView android:id="@+id/tvAlertsDesc" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/climate_notifications_off" android:textColor="@color/gray_text" android:textSize="11sp" />
                     </LinearLayout>
                     <Switch
                         android:id="@+id/switchClimateAlerts"
@@ -123,8 +141,8 @@
                 <LinearLayout android:id="@+id/rowFamily" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="12dp" android:gravity="center_vertical" android:orientation="horizontal">
                     <ImageView android:layout_width="34dp" android:layout_height="34dp" android:background="@drawable/bg_circle_green" android:padding="8dp" android:src="@android:drawable/ic_menu_myplaces" app:tint="@color/green_primary" />
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/family_access" android:textColor="@color/dark_text" android:textSize="14sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/family_access_desc" android:textColor="@color/gray_text" android:textSize="11sp" />
+                        <TextView android:id="@+id/tvAccessTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/access_settings" android:textColor="@color/dark_text" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvAccessDesc" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/access_empty_home" android:textColor="@color/gray_text" android:textSize="11sp" />
                     </LinearLayout>
                     <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@android:drawable/ic_media_play" app:tint="@color/gray_text" />
                 </LinearLayout>

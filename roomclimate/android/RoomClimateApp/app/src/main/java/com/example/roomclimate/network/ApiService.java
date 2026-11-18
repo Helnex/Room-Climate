@@ -148,6 +148,9 @@ public interface ApiService {
     @GET("family")
     Call<com.google.gson.JsonObject> getFamily();
 
+    @PUT("access")
+    Call<com.google.gson.JsonObject> setAccessMode(@Body com.google.gson.JsonObject body);
+
     @POST("family")
     Call<com.google.gson.JsonObject> inviteFamily(@Body com.google.gson.JsonObject body);
 

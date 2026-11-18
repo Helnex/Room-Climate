@@ -21,9 +21,9 @@ public class ProfileActivity extends AppCompatActivity {
         }
         SectionScreen s = SectionScreen.setUp(this, R.string.profile_title, R.string.profile_heading, R.string.profile_desc);
         int text = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS | InputType.TYPE_TEXT_VARIATION_PERSON_NAME;
-        EditText name = s.field(R.string.field_name, text, UserPrefs.getName(this));
-        EditText surname = s.field(R.string.hint_surname, text, UserPrefs.getSurname(this));
-        EditText email = s.field(R.string.hint_email_reg,
+        EditText name = s.stackField(R.string.field_name, text, UserPrefs.getName(this));
+        EditText surname = s.stackField(R.string.hint_surname, text, UserPrefs.getSurname(this));
+        EditText email = s.stackField(R.string.hint_email_reg,
                 InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS, UserPrefs.getEmail(this));
         s.button(R.string.save_changes, v -> {
             String n = name.getText().toString().trim();
