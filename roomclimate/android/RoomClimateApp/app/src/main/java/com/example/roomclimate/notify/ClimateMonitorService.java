@@ -36,7 +36,7 @@ import retrofit2.Response;
 public class ClimateMonitorService extends Service {
     // Это уведомление — карточка климата в шторке (widget/ShadeCard).
     private static final int MONITOR_ID = com.example.roomclimate.widget.ShadeCard.NOTIFICATION_ID;
-    private static final long POLL_MS = 15_000L;
+    private static final long POLL_MS = 10_000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable pollTask = this::poll;
@@ -184,7 +184,8 @@ public class ClimateMonitorService extends Service {
                     temperature.value,
                     settings.tempMin,
                     settings.tempMax,
-                    temperature.unit == null ? "°C" : temperature.unit
+                    temperature.unit == null ? "°C" : temperature.unit,
+                    temperature.measuredAt
             );
         }
         Reading humidity = body.reading("humidity");
@@ -196,7 +197,8 @@ public class ClimateMonitorService extends Service {
                     humidity.value,
                     settings.humidityMinOrDefault(),
                     settings.humidityMaxOrDefault(),
-                    humidity.unit == null ? "%" : humidity.unit
+                    humidity.unit == null ? "%" : humidity.unit,
+                    humidity.measuredAt
             );
         }
     }

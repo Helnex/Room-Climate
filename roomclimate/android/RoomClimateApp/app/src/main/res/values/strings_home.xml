@@ -83,9 +83,17 @@
     <string name="profile_saved">Профиль сохранён</string>
 
     <!-- Семейный доступ -->
-    <string name="family_title">Семейный доступ</string>
-    <string name="family_heading">Управление доступом</string>
-    <string name="family_desc">Добавьте участников и решите, кто сможет следить за климатом дома.</string>
+    <string name="family_title">Настройки доступа</string>
+    <string name="family_heading">Как вы пользуетесь приложением</string>
+    <string name="family_desc">Аккаунт ваш: метрики на дашборде и графики настраиваете вы. Участник пропускает создание помещений и сразу видит ваши экраны.</string>
+    <string name="access_mode_home">Дом и семья</string>
+    <string name="access_mode_home_sub">Общий дом. Можно пригласить членов семьи.</string>
+    <string name="access_mode_warehouse">Склады и помещения</string>
+    <string name="access_mode_warehouse_sub">Склады. Можно добавить сотрудников.</string>
+    <string name="access_invite_family">Добавить члена семьи</string>
+    <string name="access_invite_staff">Добавить сотрудника</string>
+    <string name="access_member_note">Вы видите помещения владельца. Свою настройку создавать не нужно.</string>
+    <string name="rooms_member_empty">Помещения владельца появятся здесь</string>
     <string name="family_owner">Владелец · полный доступ</string>
     <string name="family_member">Участник · просмотр и уведомления</string>
     <string name="family_invite">Пригласить нового участника</string>

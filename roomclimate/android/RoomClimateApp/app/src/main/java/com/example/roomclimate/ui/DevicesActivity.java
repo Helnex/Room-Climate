@@ -38,6 +38,7 @@ public class DevicesActivity extends AppCompatActivity {
     private TextView tvSummaryStatus;
     private JsonArray rooms = new JsonArray();
     private List<JsonObject> sensors = new ArrayList<>();
+    private boolean member;
     /** Экран сам обновляется, пока открыт: показания приходят раз в 10 с. */
     private static final long REFRESH_MS = 15_000L;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -89,6 +90,7 @@ public class DevicesActivity extends AppCompatActivity {
                         sensors.add(s);
                     }
                 }
+                member = "member".equals(Api.str(roomsBody, "role"));
                 render();
             }));
         }));
@@ -127,7 +129,12 @@ public class DevicesActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.tvEmptySensors)).setText(
                 noRooms ? R.string.dev_empty_sensors_no_rooms : R.string.dev_empty_sensors_text);
         findViewById(R.id.sensorsBlock).setVisibility(sensors.isEmpty() ? View.GONE : View.VISIBLE);
-        findViewById(R.id.addSensorBlock).setVisibility(noRooms ? View.GONE : View.VISIBLE);
+        findViewById(R.id.addSensorBlock).setVisibility(noRooms || member ? View.GONE : View.VISIBLE);
+        if (member) {
+            findViewById(R.id.btnAddRoom).setVisibility(View.GONE);
+            findViewById(R.id.btnAddRoomEmpty).setVisibility(View.GONE);
+            findViewById(R.id.btnAddSensor).setVisibility(View.GONE);
+        }
 
         renderRooms();
         renderSensors();

@@ -65,6 +65,18 @@ final class SectionScreen {
         return input;
     }
 
+    EditText stackField(int label, int inputType, CharSequence value) {
+        View row = LayoutInflater.from(activity).inflate(R.layout.item_field_stack, card, false);
+        TextView l = row.findViewById(R.id.fieldLabel);
+        EditText input = row.findViewById(R.id.fieldInput);
+        l.setText(label);
+        l.setLabelFor(R.id.fieldInput);
+        input.setInputType(inputType);
+        input.setText(value);
+        card.addView(row);
+        return input;
+    }
+
     SwitchCompat toggle(int title, CharSequence subtitle, boolean checked, CompoundButton.OnCheckedChangeListener listener) {
         View row = LayoutInflater.from(activity).inflate(R.layout.item_switch, card, false);
         ((TextView) row.findViewById(R.id.switchTitle)).setText(title);

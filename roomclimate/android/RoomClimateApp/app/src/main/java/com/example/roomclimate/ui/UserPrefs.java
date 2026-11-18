@@ -13,6 +13,7 @@ public final class UserPrefs {
     private static final String KEY_EMAIL = "email";
     private static final String KEY_TOKEN = "token";
     private static final String KEY_ALERTS = "alerts_enabled";
+    private static final String KEY_USAGE = "usage_mode";
     /** Кто входил последним — хранится вне сессии (в настройках подключения), выход его не стирает. */
     private static final String KEY_LAST_USER = "last_user_id";
 
@@ -89,6 +90,14 @@ public final class UserPrefs {
 
     public static void setAlertsEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_ALERTS, enabled).apply();
+    }
+
+    public static String usageMode(Context context) {
+        return prefs(context).getString(KEY_USAGE, "home");
+    }
+
+    public static void setUsageMode(Context context, String mode) {
+        prefs(context).edit().putString(KEY_USAGE, mode).apply();
     }
 
     public static void clear(Context context) {

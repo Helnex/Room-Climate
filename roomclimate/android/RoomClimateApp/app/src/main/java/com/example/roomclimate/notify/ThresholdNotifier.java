@@ -53,27 +53,26 @@ public final class ThresholdNotifier {
             double value,
             double min,
             double max,
-            String unit
+            String unit,
+            String measuredAt
     ) {
-        String key = "alert_status_" + metricKey;
-        String previous = ServerConfig.prefs(context).getString(key, "");
-        ThresholdChecker.Status previousStatus = null;
-        try {
-            previousStatus = previous.isEmpty() ? null : ThresholdChecker.Status.valueOf(previous);
-        } catch (IllegalArgumentException ignored) {
-            // старое/битое значение — считаем, что тревоги не было
-        }
-        ThresholdChecker.Status status = ThresholdChecker.checkWithHysteresis(
-                value, min, max, previousStatus, ThresholdChecker.marginFor(metricKey));
-        ServerConfig.prefs(context).edit().putString(key, status.name()).apply();
-
-        if (!ThresholdChecker.isAlarm(status) || status.name().equals(previous)) {
+        // Каждое новое измерение за порогом — отдельное уведомление.
+        // Повтор того же замера (опрос чаще, чем плата) не дублируется.
+        ThresholdChecker.Status status = ThresholdChecker.check(value, min, max);
+        String stampKey = "alert_stamp_" + metricKey;
+        String previousStamp = ServerConfig.prefs(context).getString(stampKey, "");
+        String stamp = measuredAt == null ? "" : measuredAt;
+        if (!ThresholdChecker.isAlarm(status)) {
+            ServerConfig.prefs(context).edit().remove(stampKey).apply();
             return;
         }
-        // «Настройки → Уведомления»: о температуре / влажности можно не сообщать.
+        if (stamp.isEmpty() || stamp.equals(previousStamp)) {
+            return;
+        }
         if (!com.example.roomclimate.ui.AppPrefs.notify(context, metricKey)) {
             return;
         }
+        ServerConfig.prefs(context).edit().putString(stampKey, stamp).apply();
 
         ensureChannels(context);
         String shownUnit = Formatters.unit(unit);
@@ -110,7 +109,7 @@ public final class ThresholdNotifier {
                 .setContentIntent(openAppIntent(context, metricKey.hashCode()));
 
         try {
-            NotificationManagerCompat.from(context).notify(notificationId(metricKey), builder.build());
+            NotificationManagerCompat.from(context).notify(notificationId(metricKey, stamp), builder.build());
         } catch (SecurityException ignored) {
             // Нет разрешения POST_NOTIFICATIONS — дашборд всё равно покажет статус.
         }
@@ -126,8 +125,8 @@ public final class ThresholdNotifier {
         return PendingIntent.getActivity(context, requestCode, open, flags);
     }
 
-    private static int notificationId(String metricKey) {
-        return 1000 + Math.abs(metricKey.hashCode() % 1000);
+    private static int notificationId(String metricKey, String stamp) {
+        return 1000 + Math.abs((metricKey + stamp).hashCode() % 10000);
     }
 
     private static String format(double value) {
