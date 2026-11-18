@@ -2,73 +2,134 @@ package com.example.roomclimate.ui;
 
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.widget.ImageViewCompat;
 
 import com.example.roomclimate.R;
 
 public final class BottomNav {
-    private BottomNav() {}
+
+    private static final int GREEN = 0xFF397454;
+    private static final int GRAY = 0xFF778178;
+    private static final int ACTIVE_BG = 0xFFE5EEDF;
+
+    private BottomNav() {
+    }
 
     public static void bind(AppCompatActivity activity, int selectedId) {
-        bindTab(activity, R.id.navDashboard, DashboardActivity.class, selectedId);
-        bindTab(activity, R.id.navHistory, HistoryActivity.class, selectedId);
-        bindTab(activity, R.id.navSettings, SettingsActivity.class, selectedId);
-        bindTab(activity, R.id.navAccount, AccountActivity.class, selectedId);
-        bindTab(activity, R.id.navDevices, DevicesActivity.class, selectedId);
-        highlight(activity, selectedId);
-    }
+        View bar = activity.findViewById(R.id.bottomNav);
 
-    private static void bindTab(AppCompatActivity activity, int id, Class<?> dest, int selectedId) {
-        View item = activity.findViewById(id);
-        if (item == null || id == selectedId) {
-            return;
-        }
-        item.setOnClickListener(v -> {
-            activity.startActivity(new Intent(activity, dest));
-            activity.finish();
-        });
-    }
+        if (bar != null) {
+            bar.setBackgroundColor(Color.WHITE);
+            bar.setPadding(
+                    dp(bar, 8),
+                    dp(bar, 9),
+                    dp(bar, 8),
+                    dp(bar, 8)
+            );
 
-    private static void highlight(AppCompatActivity activity, int selectedId) {
-        int[] ids = {
-                R.id.navDashboard, R.id.navHistory, R.id.navDevices, R.id.navSettings, R.id.navAccount
-        };
-        int selected = ContextCompat.getColor(activity, R.color.green_primary);
-        int idle = ContextCompat.getColor(activity, R.color.gray_text);
-        for (int id : ids) {
-            View item = activity.findViewById(id);
-            if (item instanceof ViewGroup) {
-                styleItem((ViewGroup) item, id == selectedId, selected, idle);
+            ViewGroup.LayoutParams params = bar.getLayoutParams();
+            if (params != null) {
+                params.height = dp(bar, 66);
+                bar.setLayoutParams(params);
             }
         }
+
+        bindTab(activity, R.id.navDashboard, selectedId,
+                R.drawable.ic_nav_home, DashboardActivity.class);
+        bindTab(activity, R.id.navHistory, selectedId,
+                R.drawable.ic_nav_chart, HistoryActivity.class);
+        bindTab(activity, R.id.navDevices, selectedId,
+                R.drawable.ic_nav_sensor, DevicesActivity.class);
+        bindTab(activity, R.id.navSettings, selectedId,
+                R.drawable.ic_nav_tune, SettingsActivity.class);
+        bindTab(activity, R.id.navAccount, selectedId,
+                R.drawable.ic_nav_person, AccountActivity.class);
     }
 
-    private static void styleItem(ViewGroup item, boolean selected, int selectedColor, int idleColor) {
-        int color = selected ? selectedColor : idleColor;
-        for (int i = 0; i < item.getChildCount(); i++) {
-            View child = item.getChildAt(i);
+    private static void bindTab(
+            AppCompatActivity activity,
+            int id,
+            int selectedId,
+            int iconRes,
+            Class<?> target
+    ) {
+        View view = activity.findViewById(id);
+
+        if (!(view instanceof ViewGroup)) {
+            return;
+        }
+
+        ViewGroup tab = (ViewGroup) view;
+        boolean selected = id == selectedId;
+        int color = selected ? GREEN : GRAY;
+
+        tab.setSelected(selected);
+
+        if (selected) {
+            tab.setOnClickListener(null);
+        } else {
+            tab.setOnClickListener(v -> {
+                activity.startActivity(new Intent(activity, target));
+                activity.finish();
+            });
+        }
+
+        for (int i = 0; i < tab.getChildCount(); i++) {
+            View child = tab.getChildAt(i);
+
             if (child instanceof ImageView) {
                 ImageView icon = (ImageView) child;
-                ImageViewCompat.setImageTintList(icon, ColorStateList.valueOf(color));
+
+                icon.setLayoutParams(new LinearLayout.LayoutParams(
+                        dp(icon, 48),
+                        dp(icon, 30)
+                ));
+                icon.setPadding(
+                        dp(icon, 13),
+                        dp(icon, 4),
+                        dp(icon, 13),
+                        dp(icon, 4)
+                );
+                icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                icon.setImageResource(iconRes);
+                ImageViewCompat.setImageTintList(
+                        icon,
+                        ColorStateList.valueOf(color)
+                );
+
                 if (selected) {
-                    icon.setBackgroundResource(R.drawable.bg_circle_green);
+                    GradientDrawable pill = new GradientDrawable();
+                    pill.setColor(ACTIVE_BG);
+                    pill.setCornerRadius(dp(icon, 15));
+                    icon.setBackground(pill);
                 } else {
                     icon.setBackground(null);
                 }
             } else if (child instanceof TextView) {
                 TextView label = (TextView) child;
+                label.setTextSize(10);
                 label.setTextColor(color);
-                label.setTypeface(null, selected ? Typeface.BOLD : Typeface.NORMAL);
+                label.setTypeface(
+                        null,
+                        selected ? Typeface.BOLD : Typeface.NORMAL
+                );
             }
         }
+    }
+
+    private static int dp(View view, int value) {
+        return Math.round(
+                value * view.getResources().getDisplayMetrics().density
+        );
     }
 }

@@ -1,0 +1,18 @@
+<resources>
+    <style
+        name="Theme.RoomClimate.HistoryCalendar"
+        parent="Theme.MaterialComponents.Light.Dialog.Alert">
+
+        <item name="colorPrimary">#397454</item>
+        <item name="colorPrimaryVariant">#22352C</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+
+        <item name="colorSecondary">#397454</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+
+        <item name="colorSurface">#F4F6F2</item>
+        <item name="colorOnSurface">#22352C</item>
+
+        <item name="android:colorAccent">#397454</item>
+    </style>
+</resources>
