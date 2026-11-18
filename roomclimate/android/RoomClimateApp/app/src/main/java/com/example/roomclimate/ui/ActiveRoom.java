@@ -75,23 +75,8 @@ final class ActiveRoom {
                 }
             }
         }
-        // Свои платы без помещения (закреплены раньше, до помещений) — тоже свои.
-        for (JsonObject d : Registry.list(Registry.array(body, "unassigned"))) {
-            if (Api.str(d, "role").isEmpty()) {
-                continue;  // ничья плата — не показываем её данные
-            }
-            String id = Api.str(d, "device_id");
-            String title = Registry.nb(Api.str(d, "title"));
-            remember(activity, id, title);
-            if (id.equals(active)) {
-                result.done(id, null, title, true);
-                return;
-            }
-            if (firstId == null) {
-                firstId = id;
-                firstTitle = title;
-            }
-        }
+        // Плата без помещения (помещение удалили) на дашборд не попадает: показываем
+        // только помещения, иначе после удаления всех помещений висели бы старые показания.
         if (firstId == null) {
             result.done(null, null, null, true);
             return;

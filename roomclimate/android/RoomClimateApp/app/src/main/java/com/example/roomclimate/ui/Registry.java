@@ -96,7 +96,7 @@ final class Registry {
             if (out.length() > 0) {
                 out.append(" · ");
             }
-            out.append(value(context, Api.str(m, "code"), Api.str(m, "unit"), v));
+            out.append(keep(value(context, Api.str(m, "code"), Api.str(m, "unit"), v)));
         }
         return out.toString();
     }
@@ -118,6 +118,11 @@ final class Registry {
 
     static String boardTitle(JsonObject board) {
         return board == null ? "" : nb(Api.str(board, "title"));
+    }
+
+    /** «49 %», «23,4 °C», «Есть движение» — одним куском при переносе строки. */
+    static String keep(String text) {
+        return text == null ? "" : text.replace(' ', '\u00A0');
     }
 
     /** «Плата № 0002» без переноса строки посередине. */

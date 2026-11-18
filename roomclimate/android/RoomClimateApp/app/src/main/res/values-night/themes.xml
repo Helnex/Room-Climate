@@ -4,6 +4,8 @@
         <item name="android:windowBackground">@color/bg_default</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+        <item name="colorAccent">@color/green_primary</item>
+        <item name="alertDialogTheme">@style/RC.Dialog</item>
     </style>
     <style name="Theme.RoomClimate" parent="Base.Theme.RoomClimate" />
 </resources>

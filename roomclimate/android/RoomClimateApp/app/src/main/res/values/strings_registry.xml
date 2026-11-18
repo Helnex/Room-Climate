@@ -25,7 +25,7 @@
     <string name="a11y_notifications">Уведомления</string>
     <string name="dev_summary">%1$s · %2$s · %3$s</string>
     <string name="dev_all_online">Все на связи</string>
-    <string name="dev_some_offline">Без данных: %1$d</string>
+    <string name="dev_some_offline">Не на связи: %1$d</string>
     <string name="dev_rooms_group">АКТИВНЫЕ ПОМЕЩЕНИЯ</string>
     <string name="dev_sensors_group">АКТИВНЫЕ ДАТЧИКИ</string>
     <string name="dev_empty_rooms_title">Помещений пока нет</string>
@@ -56,6 +56,8 @@
     <string name="dashboard_selected">«%1$s» теперь на дашборде и в графиках</string>
     <string name="sensor_action_rename">Переименовать</string>
     <string name="sensor_action_dashboard">Вынести на дашборд</string>
+    <string name="sensor_action_undashboard">Убрать с дашборда</string>
+    <string name="metric_removed_card">Карточка «%1$s» убрана с дашборда</string>
     <string name="sensor_action_unbind">Отвязать от платы</string>
     <string name="sensor_unbind_title">Отвязать «%1$s»?</string>
     <string name="sensor_unbind_text">Датчик станет свободным — его можно будет добавить в другое помещение. Показания платы сохранятся.</string>

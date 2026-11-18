@@ -74,10 +74,9 @@ public class NewRoomActivity extends AppCompatActivity {
                 boards.add(Registry.nb(Api.str(b, "title")), sub, Registry.bool(b, "selectable"));
             }
             ((TextView) findViewById(R.id.tvBoardsGroup)).setText(getString(R.string.nr_boards_group, items.size()));
+            // Плату не выбираем за человека: легко случайно занять чужую или настоящую.
+            boards.select(-1);
             int first = boards.firstEnabled();
-            if (first >= 0) {
-                boards.select(first);
-            }
             ((TextView) findViewById(R.id.tvBoardsNote)).setText(first < 0 ? R.string.nr_no_free : R.string.nr_taken_note);
             updateNote();
         }));

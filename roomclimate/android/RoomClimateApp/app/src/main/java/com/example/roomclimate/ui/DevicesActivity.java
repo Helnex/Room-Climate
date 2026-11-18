@@ -115,6 +115,7 @@ public class DevicesActivity extends AppCompatActivity {
         }
         tvSummaryStatus.setVisibility(sensors.isEmpty() ? View.GONE : View.VISIBLE);
         tvSummaryStatus.setText(offline == 0 ? getString(R.string.dev_all_online) : getString(R.string.dev_some_offline, offline));
+        tvSummaryStatus.setContentDescription(tvSummaryStatus.getText());
         tvSummaryStatus.setTextColor(ContextCompat.getColor(this, offline == 0 ? R.color.green_primary : R.color.gray_text));
         tvSummaryStatus.setCompoundDrawablesRelativeWithIntrinsicBounds(
                 offline == 0 ? R.drawable.rc_dot_small_green : R.drawable.rc_dot_small_gray, 0, 0, 0);
@@ -157,10 +158,10 @@ public class DevicesActivity extends AppCompatActivity {
                 Double t = Registry.number(board, "temperature");
                 Double h = Registry.number(board, "humidity");
                 if (t != null) {
-                    sub.append(" · ").append(Units.temperature(this, t));
+                    sub.append(" · ").append(Registry.keep(Units.temperature(this, t)));
                 }
                 if (h != null) {
-                    sub.append(" · ").append(Math.round(h)).append(" %");
+                    sub.append(" · ").append(Math.round(h)).append("\u00A0%");
                 }
                 if (boardId.equals(active)) {
                     sub.append(" · ").append(getString(R.string.dev_on_dashboard));
@@ -223,6 +224,11 @@ public class DevicesActivity extends AppCompatActivity {
         ((TextView) row.findViewById(R.id.regTitle)).setText(title);
         ((TextView) row.findViewById(R.id.regSub)).setText(sub);
         TextView st = row.findViewById(R.id.regStatus);
+        if (status != null && !online) {
+            // Датчик без связи — серая иконка, чтобы не выглядел работающим.
+            androidx.core.widget.ImageViewCompat.setImageTintList(row.findViewById(R.id.regIcon),
+                    android.content.res.ColorStateList.valueOf(ContextCompat.getColor(this, R.color.gray_text)));
+        }
         if (status != null) {
             st.setVisibility(View.VISIBLE);
             st.setText(status);
@@ -391,13 +397,24 @@ public class DevicesActivity extends AppCompatActivity {
             actions.add(() -> renameSensor(serial, name, roomId));
         }
         if (board != null && !"climate".equals(Api.str(s, "type"))) {
-            // CO₂ / свет / движение — отдельная карточка на дашборде.
-            labels.add(getString(R.string.sensor_action_dashboard));
+            // CO₂ / свет / движение — отдельная карточка на дашборде (появляется сама при добавлении).
+            String boardId = Api.str(board, "device_id");
+            List<String> codes = new ArrayList<>();
+            for (JsonObject m : Registry.list(Registry.array(s, "metrics"))) {
+                codes.add(Api.str(m, "code"));
+            }
+            boolean shown = !codes.isEmpty() && Metrics.isOnDashboard(this, boardId, codes.get(0));
+            labels.add(getString(shown ? R.string.sensor_action_undashboard : R.string.sensor_action_dashboard));
             actions.add(() -> {
-                for (JsonObject m : Registry.list(Registry.array(s, "metrics"))) {
-                    Metrics.add(this, Api.str(board, "device_id"), Api.str(m, "code"));
+                if (shown) {
+                    Metrics.removeAll(this, boardId, codes);
+                    Toast.makeText(this, getString(R.string.metric_removed_card, name), Toast.LENGTH_SHORT).show();
+                } else {
+                    for (String code : codes) {
+                        Metrics.add(this, boardId, code);
+                    }
+                    Toast.makeText(this, getString(R.string.metric_added, name), Toast.LENGTH_SHORT).show();
                 }
-                Toast.makeText(this, getString(R.string.metric_added, name), Toast.LENGTH_SHORT).show();
             });
         }
         labels.add(getString(R.string.sensor_action_unbind));
