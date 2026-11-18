@@ -16,7 +16,9 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import time
+import urllib.error
 import urllib.request
 
 import board_status
@@ -170,6 +172,66 @@ def post(body: dict, server_url: str = SERVER_URL, token: str = INGEST_TOKEN) ->
         return resp.read().decode("utf-8")
 
 
+# Сервер принимает только показатели из своего справочника (metric_types, заводится миграцией)
+# и на незнакомый отвечает 422 «Неизвестный показатель: x, y. …» — на весь запрос.
+UNKNOWN_RE = re.compile(r"Неизвестный показатель:\s*([A-Za-z0-9_.\-, ]+)")
+# Через сколько секунд снова пробовать отклонённый показатель (вдруг миграцию уже сделали).
+RECHECK_UNKNOWN_SEC = float(os.environ.get("RECHECK_UNKNOWN_SEC", "600"))
+
+
+def unknown_types(exc: Exception) -> set[str]:
+    """Какие показатели сервер не знает — из ответа 422 (пусто, если 422 по другой причине)."""
+    if getattr(exc, "code", None) != 422:
+        return set()
+    try:
+        detail = json.loads(exc.read() or b"{}").get("detail", "")
+    except Exception:  # noqa: BLE001
+        return set()
+    match = UNKNOWN_RE.search(str(detail))
+    # Точка после списка («…: co2x. Добавьте…») — конец фразы, а не часть имени.
+    return {t.strip().rstrip(".") for t in match.group(1).split(",") if t.strip().rstrip(".")} if match else set()
+
+
+class Sender:
+    """Отправка с учётом справочника сервера: незнакомый серверу показатель (новый датчик,
+    который ещё не завели миграцией) не мешает остальным — он убирается из запроса,
+    остальное уходит сразу, а незнакомый пробуется снова раз в RECHECK_UNKNOWN_SEC.
+    Подходит и для досылки из буфера: Buffer.flush(sender)."""
+
+    def __init__(self, post_fn=None, clock=time.monotonic, recheck: float = RECHECK_UNKNOWN_SEC, log=print):
+        self.post_fn = post_fn or post
+        self.clock = clock
+        self.recheck = recheck
+        self.log = log
+        self.unknown: dict[str, float] = {}  # тип → когда пробовать снова
+
+    def strip(self, body: dict) -> dict | None:
+        now = self.clock()
+        for kind in [k for k, until in self.unknown.items() if until <= now]:
+            del self.unknown[kind]
+        readings = [r for r in body["readings"] if r["type"] not in self.unknown]
+        return {**body, "readings": readings} if readings else None
+
+    def __call__(self, body: dict) -> str:
+        body = self.strip(body)
+        if body is None:
+            return "пропущено: сервер пока не знает эти показатели"
+        try:
+            return self.post_fn(body)
+        except urllib.error.HTTPError as exc:
+            sent = {r["type"] for r in body["readings"]}
+            unknown = unknown_types(exc) & sent
+            if not unknown:
+                raise
+            for kind in unknown:
+                self.unknown[kind] = self.clock() + self.recheck
+            self.log(f"сервер не знает показатель {', '.join(sorted(unknown))} — датчик есть на плате, "
+                     f"но его нет в базе сервера. Добавьте его миграцией (server/app/migrations). "
+                     f"Остальные показания отправляю, этот попробую снова через {int(self.recheck)} с", flush=True)
+            body = self.strip(body)
+            return self.post_fn(body) if body is not None else "пропущено: сервер не знает эти показатели"
+
+
 def next_delay(failures: int, period: float = PERIOD_SEC) -> float:
     """При серии ошибок увеличиваем паузу (до 60 с), чтобы не заваливать сеть."""
     return period if failures == 0 else min(60.0, period * min(failures, 6))
@@ -217,9 +279,15 @@ def send_status(sensor, extras: list, buffered: int, alarm_on: bool) -> None:
 
 def main() -> None:
     sensor = make_sensor()
-    extras = extra_sensors.make_extras(extra_sensors.parse_kinds(extra_sensors.EXTRA_SENSORS), SENSOR)
+    kinds = extra_sensors.parse_kinds(extra_sensors.EXTRA_SENSORS)
+    extras = extra_sensors.make_extras(kinds, SENSOR)
+    # EXTRA_SENSORS=auto: подключённые CO₂ и датчик света находятся сами, и на ходу тоже.
+    detector = extra_sensors.Detector(extra_sensors.AUTO in kinds and SENSOR != "fake")
+    extras += detector.refresh(extras, force=True)
     names = ", ".join([sensor.name] + [e.name for e in extras])
-    print(f"collector -> {SERVER_URL} device={DEVICE_ID} period={PERIOD_SEC}s датчики: {names}", flush=True)
+    print(f"collector -> {SERVER_URL} device={DEVICE_ID} period={PERIOD_SEC}s датчики: {names}"
+          + (" (+ поиск новых датчиков)" if detector.enabled else ""), flush=True)
+    sender = Sender()
     failures = 0
     sensor_failures = 0
     next_try = 0.0  # когда снова пробовать связь после ошибки (пока ждём — копим в буфер)
@@ -249,6 +317,11 @@ def main() -> None:
                         print(f"не удалось открыть датчик заново: {reopen_exc}", flush=True)
             # Доп. датчики отправляются, даже если DHT22 в этот раз не прочитался.
             extra = extra_sensors.read_all(extras)
+            extras = detector.track(extras, extra)
+            new = detector.refresh(extras)
+            if new:
+                extras += new
+                last_status = None  # сразу сообщить серверу новый список датчиков
             if t is not None or extra:
                 body = build_body(t, h, DEVICE_ID, extra)
                 alarm.update(body["readings"])  # сигнал работает и без связи — по последним порогам
@@ -256,9 +329,9 @@ def main() -> None:
                     buf.add(body)  # связи не было — не ждём таймаут, сразу в буфер
                 else:
                     try:
-                        print(f"{describe(t, h, extra)} -> {post(body)}", flush=True)
+                        print(f"{describe(t, h, extra)} -> {sender(body)}", flush=True)
                         failures = 0
-                        sent = buf.flush(post)
+                        sent = buf.flush(sender)
                         if sent:
                             print(f"дослано из буфера: {sent}, осталось {len(buf)}", flush=True)
                     except Exception as exc:  # noqa: BLE001 — сбор не должен останавливаться
