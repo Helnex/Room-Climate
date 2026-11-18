@@ -54,9 +54,10 @@ android {
     buildTypes {
         release {
             signingConfigs.findByName("release")?.let { signingConfig = it }
+            // R8 выключен: с ним (packageScope kotlin.**) OkHttp падал при первом же запросе —
+            // IllegalAccessError в okhttp3.internal.Util. Размер APK для учебного проекта не важен.
             optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+                enable = false
             }
         }
     }
