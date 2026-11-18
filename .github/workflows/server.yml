@@ -40,6 +40,9 @@ jobs:
       - name: Unit tests (password recovery)
         run: python3 test_recovery.py
 
+      - name: Unit tests (app update)
+        run: python3 test_app_update.py
+
       - name: Unit tests (my home)
         run: python3 test_home.py
 

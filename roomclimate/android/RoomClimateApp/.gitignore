@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+# Ключ подписи проекта — только локально / в секретах CI
+keystore.properties
+signing/
+*.jks
+*.keystore

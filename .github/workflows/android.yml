@@ -70,3 +70,60 @@ jobs:
         if: always()
         working-directory: roomclimate/server
         run: docker compose down
+
+  # Подписанный общим ключом APK для обновления приложения (scripts/publish-apk.ps1 делает то же
+  # локально). Только после слияния в main и если в секретах репозитория есть ключ:
+  # RC_KEYSTORE_BASE64, RC_KEYSTORE_PASSWORD (создаёт scripts/new-signing-key.ps1).
+  release-apk:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: roomclimate/android/RoomClimateApp
+    env:
+      RC_KEYSTORE_BASE64: ${{ secrets.RC_KEYSTORE_BASE64 }}
+      RC_KEYSTORE_PASSWORD: ${{ secrets.RC_KEYSTORE_PASSWORD }}
+      RC_KEY_PASSWORD: ${{ secrets.RC_KEYSTORE_PASSWORD }}
+      RC_KEY_ALIAS: roomclimate
+    steps:
+      - name: Checkout (вся история — номер версии = число коммитов)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Key present?
+        id: key
+        run: echo "ok=$([ -n "$RC_KEYSTORE_BASE64" ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+
+      - name: JDK 17
+        if: steps.key.outputs.ok == 'yes'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Android SDK
+        if: steps.key.outputs.ok == 'yes'
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-37.0 build-tools;37.0.0"
+
+      - name: Build signed release APK
+        if: steps.key.outputs.ok == 'yes'
+        run: |
+          mkdir -p signing
+          echo "$RC_KEYSTORE_BASE64" | base64 -d > signing/roomclimate-release.jks
+          export RC_KEYSTORE_FILE=signing/roomclimate-release.jks
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          rm -f signing/roomclimate-release.jks
+
+      - name: Upload release APK
+        if: steps.key.outputs.ok == 'yes'
+        uses: actions/upload-artifact@v4
+        with:
+          name: RoomClimate-release-apk
+          path: |
+            roomclimate/android/RoomClimateApp/app/build/outputs/apk/release/*.apk
+            roomclimate/android/RoomClimateApp/app/build/outputs/apk/release/output-metadata.json

@@ -64,6 +64,9 @@ public class SettingsActivity extends AppCompatActivity {
                 v -> startActivity(new android.content.Intent(this, NotificationsActivity.class)));
         Rows.add(sections, R.drawable.ic_nav_sensor, R.string.units_title, R.string.units_row_sub,
                 v -> startActivity(new android.content.Intent(this, UnitsActivity.class)));
+        Rows.add(sections, R.drawable.ic_widget_refresh, getString(R.string.upd_title),
+                getString(R.string.upd_row_sub, com.example.roomclimate.update.AppUpdate.currentVersionName(this)),
+                v -> startActivity(new android.content.Intent(this, UpdateActivity.class)));
         AppPermissions.request(this);
         loadThresholds();
         testConnection();
