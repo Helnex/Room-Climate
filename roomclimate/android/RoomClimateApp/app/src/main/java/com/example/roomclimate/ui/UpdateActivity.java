@@ -49,6 +49,7 @@ public class UpdateActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         screen = SectionScreen.setUp(this, R.string.upd_title, 0, R.string.upd_checking);
+        screen.card.setVisibility(View.GONE);  // полей нет — пустая карточка шаблона не нужна
         screen.note(getString(R.string.upd_current, AppUpdate.currentVersionName(this)));
         String fromNotification = getIntent().getStringExtra(AppUpdate.EXTRA_LATEST);
         if (fromNotification != null) {
