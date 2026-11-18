@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """Дополнительные датчики сборщика: углекислый газ, освещённость, движение.
 
-Включаются переменной EXTRA_SENSORS (через запятую): co2, light, motion.
+Включаются переменной EXTRA_SENSORS (через запятую): co2, light, motion — или auto:
+сборщик сам ищет подключённые CO₂ и датчик света при старте и потом раз в DETECT_SEC,
+так что воткнутый на ходу датчик начинает отправлять показания без правки настроек
+(движение так не найти: «никого нет» и «датчик не подключён» для PIR выглядят одинаково).
 Каждый отдаёт одно показание {"type", "value", "unit"} в том же POST /telemetry, что и DHT22.
 
   co2    — MH-Z19B по UART (/dev/serial0, 9600 бод), ppm.  Нужен pyserial и включённый UART.
@@ -26,6 +29,13 @@ MOTION_PIN = os.environ.get("MOTION_PIN", "D17").strip().upper()
 MOTION_HOLD_SEC = float(os.environ.get("MOTION_HOLD_SEC", "60"))
 
 KINDS = ("co2", "light", "motion")
+AUTO = "auto"
+# Какие датчики умеем найти сами (отвечают на запрос по UART / I2C).
+DETECTABLE = ("co2", "light")
+# Как часто искать новые датчики в режиме auto и после скольких пустых чтений подряд
+# считать найденный датчик отключённым (тогда его снова можно будет найти).
+DETECT_SEC = float(os.environ.get("DETECT_SEC", "60"))
+LOST_AFTER = int(os.environ.get("LOST_AFTER", "5"))
 
 
 class ExtraSensorError(Exception):
@@ -38,8 +48,8 @@ def parse_kinds(raw: str) -> list[str]:
         kind = item.strip().lower()
         if not kind:
             continue
-        if kind not in KINDS:
-            raise SystemExit(f"EXTRA_SENSORS: неизвестный датчик «{kind}», можно: {', '.join(KINDS)}")
+        if kind not in KINDS and kind != AUTO:
+            raise SystemExit(f"EXTRA_SENSORS: неизвестный датчик «{kind}», можно: {', '.join(KINDS)} или {AUTO}")
         if kind not in kinds:
             kinds.append(kind)
     return kinds
@@ -57,6 +67,11 @@ MHZ19_READ = bytes([0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79])
 
 def mhz19_checksum(packet: bytes) -> int:
     return (0xFF - (sum(packet[1:8]) & 0xFF) + 1) & 0xFF
+
+
+def mhz19_answered(packet: bytes) -> bool:
+    """Пришёл правильный ответ MH-Z19 (даже если датчик ещё греется и ppm неправдоподобен)."""
+    return len(packet) == 9 and packet[0] == 0xFF and packet[1] == 0x86 and mhz19_checksum(packet) == packet[8]
 
 
 def mhz19_ppm(packet: bytes) -> int:
@@ -82,10 +97,20 @@ class Co2Sensor:
             serial_port = serial.Serial(port, 9600, timeout=2)
         self._port = serial_port
 
-    def read(self) -> dict:
+    def _ask(self) -> bytes:
         self._port.reset_input_buffer()
         self._port.write(MHZ19_READ)
-        return reading("co2", mhz19_ppm(self._port.read(9)))
+        return self._port.read(9)
+
+    def read(self) -> dict:
+        return reading("co2", mhz19_ppm(self._ask()))
+
+    def probe(self) -> bool:
+        """Есть ли на порту MH-Z19: ответ правильного вида (прогрев не мешает)."""
+        try:
+            return mhz19_answered(self._ask())
+        except Exception:  # noqa: BLE001
+            return False
 
     def close(self) -> None:
         try:
@@ -126,6 +151,14 @@ class LightSensor:
         msg = i2c_msg.read(self._address, 2)
         self._bus.i2c_rdwr(msg)
         return reading("light", bh1750_lux(bytes(msg)))
+
+    def probe(self) -> bool:
+        """Есть ли на шине BH1750: отвечает на измерение."""
+        try:
+            self.read()
+            return True
+        except Exception:  # noqa: BLE001 — OSError «Remote I/O error», когда датчика нет
+            return False
 
     def close(self) -> None:
         try:
@@ -201,6 +234,8 @@ def make_extras(kinds: list[str], mode: str) -> list:
     """mode — как SENSOR у DHT22: fake, auto (настоящий, иначе тестовый) или dht22 (только настоящий)."""
     sensors = []
     for kind in kinds:
+        if kind == AUTO:  # ищет Detector
+            continue
         if mode == "fake":
             sensors.append(FakeExtra(kind))
             continue
@@ -212,6 +247,70 @@ def make_extras(kinds: list[str], mode: str) -> list:
             print(f"датчик {kind} недоступен ({exc}) — отправляю тестовые значения", flush=True)
             sensors.append(FakeExtra(kind))
     return sensors
+
+
+class Detector:
+    """Режим EXTRA_SENSORS=auto: поиск подключённых датчиков на ходу.
+
+    refresh() — при старте и раз в DETECT_SEC ищет датчики, которых ещё нет в списке;
+    track()   — найденный датчик, который LOST_AFTER раз подряд не ответил, убирается
+                из списка (отключили) — если его воткнут снова, refresh() найдёт заново.
+    Датчики, заданные в EXTRA_SENSORS явно, не трогаются.
+    """
+
+    def __init__(self, enabled: bool, factories: dict | None = None, clock=time.monotonic,
+                 interval: float = DETECT_SEC, lost_after: int = LOST_AFTER, log=print):
+        self.enabled = enabled
+        self.factories = factories or REAL
+        self.clock = clock
+        self.interval = interval
+        self.lost_after = lost_after
+        self.log = log
+        self.found: dict[str, object] = {}  # kind → найденный нами датчик
+        self.misses: dict[str, int] = {}
+        self._next = 0.0
+
+    def refresh(self, extras: list, force: bool = False) -> list:
+        """Новые найденные датчики (их нужно добавить к extras)."""
+        if not self.enabled or (not force and self.clock() < self._next):
+            return []
+        self._next = self.clock() + self.interval
+        have = {s.kind for s in extras}
+        new = []
+        for kind in DETECTABLE:
+            if kind in have or kind not in self.factories:
+                continue
+            try:
+                sensor = self.factories[kind]()
+            except Exception:  # noqa: BLE001 — нет библиотеки, шина/порт выключены, ПК
+                continue
+            if sensor.probe():
+                self.found[kind] = sensor
+                self.misses[kind] = 0
+                new.append(sensor)
+                self.log(f"найден датчик: {sensor.name} — начинаю отправлять «{kind}»", flush=True)
+            else:
+                sensor.close()
+        return new
+
+    def track(self, extras: list, readings: list[dict]) -> list:
+        """Учесть, кто ответил в этом цикле; вернуть список без пропавших датчиков."""
+        if not self.found:
+            return extras
+        got = {r["type"] for r in readings}
+        keep = []
+        for sensor in extras:
+            kind = sensor.kind
+            if self.found.get(kind) is sensor:
+                self.misses[kind] = 0 if kind in got else self.misses.get(kind, 0) + 1
+                if self.misses[kind] >= self.lost_after:
+                    self.log(f"датчик {sensor.name} не отвечает {self.lost_after} раз подряд — "
+                             f"считаю отключённым, буду искать снова", flush=True)
+                    sensor.close()
+                    del self.found[kind]
+                    continue
+            keep.append(sensor)
+        return keep
 
 
 def read_all(sensors: list) -> list[dict]:

@@ -56,7 +56,7 @@ ask DEVICE_ID "Имя платы" "pi-1"
 ask PERIOD_SEC "Период отправки, секунд" "10"
 ask INGEST_TOKEN "INGEST_TOKEN (из server/.env на компьютере)" ""
 ask DHT_PIN "Вывод DATA датчика DHT22 (BCM: D4 = GPIO4, физический пин 7)" "D4"
-ask EXTRA_SENSORS "Доп. датчики через запятую: co2, light, motion (пусто — только DHT22)" ""
+ask EXTRA_SENSORS "Доп. датчики: auto — найти CO₂ и свет самому (и воткнутые потом), или co2, light, motion через запятую; пусто — только DHT22" "auto"
 EXTRA_SENSORS="$(echo "$EXTRA_SENSORS" | tr 'A-Z;' 'a-z,' | tr -d ' ')"
 MOTION_PIN="${MOTION_PIN:-D17}"
 ask ALARM_LED_PIN "Светодиод сигнала (BCM, например D27; пусто — без светодиода)" ""
@@ -79,8 +79,8 @@ if [[ ! "$DHT_PIN" =~ ^D[0-9]{1,2}$ ]]; then
     echo "Вывод датчика: вида D4 (номер GPIO по BCM)" >&2
     exit 1
 fi
-if [[ ! "$EXTRA_SENSORS" =~ ^((co2|light|motion)(,(co2|light|motion))*)?$ ]]; then
-    echo "Доп. датчики: co2, light, motion через запятую" >&2
+if [[ ! "$EXTRA_SENSORS" =~ ^((auto|co2|light|motion)(,(auto|co2|light|motion))*)?$ ]]; then
+    echo "Доп. датчики: auto или co2, light, motion через запятую" >&2
     exit 1
 fi
 for pin in "$ALARM_LED_PIN" "$BUZZER_PIN"; do
@@ -95,6 +95,9 @@ if [[ ! "$MOTION_PIN" =~ ^D[0-9]{1,2}$ ]]; then
 fi
 if [[ ",$EXTRA_SENSORS," == *",co2,"* ]] && [[ ! -e /dev/serial0 ]]; then
     echo "Внимание: нет /dev/serial0 — включите UART: sudo raspi-config → Interface Options → Serial Port (консоль — нет, порт — да)" >&2
+fi
+if [[ ",$EXTRA_SENSORS," == *",auto,"* ]] && [[ ! -e /dev/i2c-1 && ! -e /dev/serial0 ]]; then
+    echo "Внимание: для поиска датчиков включите I2C (свет) и UART (CO₂): sudo raspi-config → Interface Options" >&2
 fi
 if [[ ",$EXTRA_SENSORS," == *",light,"* ]] && [[ ! -e /dev/i2c-1 ]]; then
     echo "Внимание: нет /dev/i2c-1 — включите I2C: sudo raspi-config → Interface Options → I2C" >&2
