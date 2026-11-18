@@ -45,7 +45,7 @@ public class RoomPickActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_pick);
         ScreenHeader.bindSub(this, R.string.pr_title);
-        BottomNav.bind(this, R.id.navDevices);
+        SubScreenNav.bind(this);
         ((TextView) findViewById(R.id.tvPickDesc)).setText(R.string.pr_desc);
         ((TextView) findViewById(R.id.tvPickNote)).setText(R.string.pr_note);
         String title = getIntent().getStringExtra(EXTRA_SENSOR_TITLE);

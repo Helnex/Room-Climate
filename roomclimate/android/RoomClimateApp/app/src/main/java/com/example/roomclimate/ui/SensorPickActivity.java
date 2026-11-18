@@ -33,7 +33,7 @@ public class SensorPickActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_pick);
         ScreenHeader.bindSub(this, R.string.ps_title);
-        BottomNav.bind(this, R.id.navDevices);
+        SubScreenNav.bind(this);
         ((TextView) findViewById(R.id.tvPickDesc)).setText(R.string.ps_desc);
         ((TextView) findViewById(R.id.tvPickNote)).setText(R.string.ps_note);
         pick = findViewById(R.id.btnPick);

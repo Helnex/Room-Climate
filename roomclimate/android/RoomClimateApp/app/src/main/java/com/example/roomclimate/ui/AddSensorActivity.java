@@ -59,7 +59,7 @@ public class AddSensorActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_add_sensor);
         ScreenHeader.bindSub(this, R.string.as_title);
-        BottomNav.bind(this, R.id.navDevices);
+        SubScreenNav.bind(this);
         editName = findViewById(R.id.editSensorName);
         tvNote = findViewById(R.id.tvAddNote);
         presetRoom = getIntent().getIntExtra(EXTRA_ROOM_ID, -1);

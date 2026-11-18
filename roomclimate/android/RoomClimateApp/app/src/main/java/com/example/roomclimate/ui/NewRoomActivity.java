@@ -38,7 +38,7 @@ public class NewRoomActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_new_room);
         ScreenHeader.bindSub(this, R.string.room_new_title);
-        BottomNav.bind(this, R.id.navDevices);
+        SubScreenNav.bind(this);
         name = findViewById(R.id.editRoomName);
         create = findViewById(R.id.btnCreateRoom);
         note = findViewById(R.id.tvCreateNote);
