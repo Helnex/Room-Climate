@@ -33,8 +33,9 @@ public final class BottomNav {
             return;
         }
         item.setOnClickListener(v -> {
-            activity.startActivity(new Intent(activity, dest));
-            activity.finish();
+            activity.startActivity(new Intent(activity, dest)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+            activity.overridePendingTransition(0, 0);
         });
     }
 

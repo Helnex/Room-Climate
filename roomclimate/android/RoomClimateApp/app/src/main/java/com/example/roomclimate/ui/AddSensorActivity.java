@@ -33,6 +33,9 @@ public class AddSensorActivity extends AppCompatActivity {
     private JsonObject room;
     private JsonObject board;
     private int presetRoom;
+    private String presetSerial;
+    /** Платы своих помещений — чтобы не перескакивать дашбордом на новое помещение. */
+    private final java.util.Set<String> ownBoards = new java.util.HashSet<>();
 
     private final ActivityResultLauncher<Intent> pickSensor = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -60,6 +63,11 @@ public class AddSensorActivity extends AppCompatActivity {
         editName = findViewById(R.id.editSensorName);
         tvNote = findViewById(R.id.tvAddNote);
         presetRoom = getIntent().getIntExtra(EXTRA_ROOM_ID, -1);
+        if (savedInstanceState != null) {
+            // Поворот экрана: выбранные датчик и помещение не должны сбрасываться.
+            presetRoom = savedInstanceState.getInt(EXTRA_ROOM_ID, presetRoom);
+            presetSerial = savedInstanceState.getString(SensorPickActivity.EXTRA_SERIAL);
+        }
 
         findViewById(R.id.sensorCard).setOnClickListener(v -> pickSensor.launch(
                 new Intent(this, SensorPickActivity.class)
@@ -67,8 +75,21 @@ public class AddSensorActivity extends AppCompatActivity {
         findViewById(R.id.roomCard).setOnClickListener(v -> openRoomPicker());
         Button add = findViewById(R.id.btnAddSensor);
         add.setOnClickListener(v -> save(add));
-        loadSensors(null);
+        loadSensors(presetSerial);
         loadRooms(presetRoom);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (room != null) {
+            outState.putInt(EXTRA_ROOM_ID, room.get("id").getAsInt());
+        } else {
+            outState.putInt(EXTRA_ROOM_ID, presetRoom);
+        }
+        if (sensor != null) {
+            outState.putString(SensorPickActivity.EXTRA_SERIAL, Api.str(sensor, "serial"));
+        }
     }
 
     // ---------- Датчик ----------
@@ -134,6 +155,7 @@ public class AddSensorActivity extends AppCompatActivity {
                 if (!Registry.bool(r, "own") || boardOf(r) == null) {
                     continue;
                 }
+                ownBoards.add(Api.str(boardOf(r), "device_id"));
                 if (first == null) {
                     first = r;
                 }
@@ -156,7 +178,7 @@ public class AddSensorActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.tvRoomName)).setText(getString(R.string.as_room_value, Api.str(r, "name")));
         TextView tvBoard = findViewById(R.id.tvRoomBoard);
         tvBoard.setVisibility(View.VISIBLE);
-        tvBoard.setText(Api.str(board, "title"));
+        tvBoard.setText(Registry.nb(Api.str(board, "title")));
         updateNote();
     }
 
@@ -207,8 +229,11 @@ public class AddSensorActivity extends AppCompatActivity {
         String type = Api.str(sensor, "type");
         ApiClient.get(this).bindSensor(Api.str(sensor, "serial"), body).enqueue(Api.call(this, ok -> {
             if ("climate".equals(type)) {
-                // Температура и влажность — основное на дашборде: показываем это помещение.
-                ServerConfig.save(this, ServerConfig.getBaseUrl(this), boardId);
+                // Первое своё помещение с температурой — сразу на дашборд. Если на дашборде уже
+                // своё помещение, не перескакиваем: какое показывать, выбирают в «Устройствах».
+                if (!ownBoards.contains(ServerConfig.getDeviceId(this))) {
+                    ServerConfig.save(this, ServerConfig.getBaseUrl(this), boardId);
+                }
             } else {
                 // CO₂ / свет / движение — отдельная карточка на дашборде.
                 for (JsonObject m : Registry.list(Registry.array(sensor, "metrics"))) {

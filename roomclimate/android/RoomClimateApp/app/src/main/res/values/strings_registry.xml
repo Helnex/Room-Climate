@@ -39,10 +39,15 @@
     <string name="dev_room_title">%1$s · %2$s</string>
     <string name="dev_room_no_board">Без платы</string>
     <string name="dev_on_dashboard">на дашборде</string>
-    <string name="dev_sensor_sub">%1$s · № %2$s · %3$s</string>
+    <string name="dev_sensor_sub">%1$s · №\u00A0%2$s · %3$s</string>
     <string name="dev_sensor_no_room">Без помещения</string>
     <string name="dev_online">На связи</string>
     <string name="dev_no_data">Нет данных</string>
+    <string name="dev_offline_last">Не на связи · последние: %1$s</string>
+    <string name="room_action_export">Выгрузить показания за неделю (CSV)</string>
+    <string name="export_started">Готовлю выгрузку…</string>
+    <string name="dash_no_rooms">Нет помещений с платой</string>
+    <string name="dash_no_rooms_link">Добавить помещение в «Устройствах» ›</string>
     <string name="a11y_add_sensor_to">Добавить датчик в «%1$s»</string>
     <string name="room_action_dashboard">Показывать на дашборде</string>
     <string name="room_action_status">Состояние платы</string>
@@ -82,14 +87,14 @@
     <string name="as_pick">Выбрать датчик ›</string>
     <string name="as_pick_other">Выбрать другой датчик ›</string>
     <string name="sensor_free">Свободен</string>
-    <string name="as_serial_state">№ %1$s · %2$s</string>
+    <string name="as_serial_state">№\u00A0%1$s · %2$s</string>
     <string name="as_name_label">Название в приложении</string>
     <string name="as_metric_label">Показатель · из записи датчика</string>
     <string name="as_room_label">Помещение</string>
     <string name="as_room_none">Выберите помещение ›</string>
     <string name="as_room_value">%1$s ›</string>
     <string name="as_button">Добавить датчик</string>
-    <string name="as_note">Датчик № %1$s будет привязан к плате № %2$s. Показатель определяется автоматически.</string>
+    <string name="as_note">Датчик №\u00A0%1$s будет привязан к плате №\u00A0%2$s. Показатель определяется автоматически.</string>
     <string name="as_note_empty">Показатель определяется автоматически из записи датчика на сервере.</string>
     <string name="as_need_sensor">Сначала выберите датчик</string>
     <string name="as_need_room">Выберите помещение</string>
@@ -100,17 +105,17 @@
     <string name="ps_title">Выбор датчика</string>
     <string name="ps_desc">Зарегистрированные датчики из базы сервера. Выберите свободный датчик.</string>
     <string name="ps_counts">ВСЕ ДАТЧИКИ · %1$d   /   СВОБОДНЫ · %2$d</string>
-    <string name="ps_free_sub">№ %1$s · %2$s · Свободен</string>
-    <string name="ps_mine_sub">№ %1$s · %2$s · %3$s</string>
-    <string name="ps_taken_sub">№ %1$s · Занят</string>
+    <string name="ps_free_sub">№\u00A0%1$s · %2$s · Свободен</string>
+    <string name="ps_mine_sub">№\u00A0%1$s · %2$s · %3$s</string>
+    <string name="ps_taken_sub">№\u00A0%1$s · Занят</string>
     <string name="ps_note">Уже привязанные датчики недоступны для выбора. Тип и единицы берутся из записи сервера.</string>
-    <string name="ps_button">Выбрать датчик № %1$s</string>
+    <string name="ps_button">Выбрать датчик №\u00A0%1$s</string>
     <string name="ps_button_none">Выберите датчик</string>
 
     <!-- «Выбор помещения» -->
     <string name="pr_title">Выбор помещения</string>
     <string name="pr_desc">Выберите помещение. Датчик будет привязан к плате этого помещения.</string>
-    <string name="pr_sensor">%1$s · Датчик № %2$s</string>
+    <string name="pr_sensor">%1$s · Датчик №\u00A0%2$s</string>
     <string name="pr_sensor_sub">%1$s · Из базы сервера</string>
     <string name="pr_group">ПОМЕЩЕНИЯ И ПЛАТЫ · %1$d</string>
     <string name="pr_no_board">Без платы — датчик подключить некуда</string>

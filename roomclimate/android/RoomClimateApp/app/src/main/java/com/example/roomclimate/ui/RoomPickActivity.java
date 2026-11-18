@@ -85,7 +85,7 @@ public class RoomPickActivity extends AppCompatActivity {
                 }
                 items.add(room);
                 list.add(Api.str(room, "name"),
-                        board == null ? getString(R.string.pr_no_board) : Api.str(board, "title"), board != null);
+                        board == null ? getString(R.string.pr_no_board) : Registry.nb(Api.str(board, "title")), board != null);
             }
             ((TextView) findViewById(R.id.tvPickGroup)).setText(getString(R.string.pr_group, items.size()));
             list.select(select >= 0 ? select : list.firstEnabled());

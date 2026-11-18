@@ -13,10 +13,19 @@ public final class UserPrefs {
     private static final String KEY_EMAIL = "email";
     private static final String KEY_TOKEN = "token";
     private static final String KEY_ALERTS = "alerts_enabled";
+    /** Кто входил последним — хранится вне сессии (в настройках подключения), выход его не стирает. */
+    private static final String KEY_LAST_USER = "last_user_id";
 
     private UserPrefs() {}
 
     public static void save(Context context, AuthResponse user) {
+        // Вошёл другой человек: карточки дашборда прошлого аккаунта ему не принадлежат
+        // (их плата может быть чужой). Плату дашборда выберет ActiveRoom из его помещений.
+        android.content.SharedPreferences config = com.example.roomclimate.network.ServerConfig.prefs(context);
+        if (config.getInt(KEY_LAST_USER, 0) != user.id) {
+            Metrics.clear(context);
+            config.edit().putInt(KEY_LAST_USER, user.id).apply();
+        }
         prefs(context).edit()
                 .putInt(KEY_ID, user.id)
                 .putString(KEY_NAME, user.name == null ? "" : user.name)

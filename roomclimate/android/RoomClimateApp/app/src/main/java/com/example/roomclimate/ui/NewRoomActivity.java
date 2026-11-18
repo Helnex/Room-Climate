@@ -71,7 +71,7 @@ public class NewRoomActivity extends AppCompatActivity {
                 } else {
                     sub = getString(R.string.board_taken);
                 }
-                boards.add(Api.str(b, "title"), sub, Registry.bool(b, "selectable"));
+                boards.add(Registry.nb(Api.str(b, "title")), sub, Registry.bool(b, "selectable"));
             }
             ((TextView) findViewById(R.id.tvBoardsGroup)).setText(getString(R.string.nr_boards_group, items.size()));
             int first = boards.firstEnabled();
@@ -98,14 +98,16 @@ public class NewRoomActivity extends AppCompatActivity {
         } else if (value.isEmpty()) {
             note.setText(R.string.nr_note_no_name);
         } else {
-            note.setText(getString(R.string.nr_note, Api.str(board, "title"), value));
+            note.setText(getString(R.string.nr_note, Registry.nb(Api.str(board, "title")), value));
         }
     }
 
     private void save() {
         String value = name.getText().toString().trim();
         if (value.isEmpty()) {
+            name.requestFocus();
             name.setError(getString(R.string.room_name_empty));
+            Toast.makeText(this, R.string.room_name_empty, Toast.LENGTH_SHORT).show();
             return;
         }
         JsonObject board = selectedBoard();

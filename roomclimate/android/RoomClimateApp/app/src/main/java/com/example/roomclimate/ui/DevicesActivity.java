@@ -38,6 +38,10 @@ public class DevicesActivity extends AppCompatActivity {
     private TextView tvSummaryStatus;
     private JsonArray rooms = new JsonArray();
     private List<JsonObject> sensors = new ArrayList<>();
+    /** Экран сам обновляется, пока открыт: показания приходят раз в 10 с. */
+    private static final long REFRESH_MS = 15_000L;
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable refreshTask = this::load;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +71,15 @@ public class DevicesActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onPause() {
+        handler.removeCallbacks(refreshTask);
+        super.onPause();
+    }
+
     private void load() {
+        handler.removeCallbacks(refreshTask);
+        handler.postDelayed(refreshTask, REFRESH_MS);
         ApiClient.get(this).getRooms().enqueue(Api.call(this, roomsBody -> {
             rooms = Registry.array(roomsBody, "rooms");
             ApiClient.get(this).getRegistrySensors().enqueue(Api.call(this, sensorsBody -> {
@@ -154,8 +166,11 @@ public class DevicesActivity extends AppCompatActivity {
                     sub.append(" · ").append(getString(R.string.dev_on_dashboard));
                 }
             }
-            String title = getString(R.string.dev_room_title, name,
-                    board == null ? getString(R.string.dev_room_no_board) : Api.str(board, "title"));
+            String boardTitle = board == null ? getString(R.string.dev_room_no_board) : Registry.nb(Api.str(board, "title"));
+            if (board != null) {
+                ActiveRoom.remember(this, boardId, boardTitle);
+            }
+            String title = getString(R.string.dev_room_title, name, boardTitle);
             boolean own = Registry.bool(room, "own");
             View row = addRow(roomsList, R.drawable.ic_door, title, sub, null, false,
                     v -> roomActions(room, board, own));
@@ -179,10 +194,18 @@ public class DevicesActivity extends AppCompatActivity {
                     room == null ? getString(R.string.dev_sensor_no_room) : Api.str(room, "name"),
                     Api.str(s, "serial"), Api.str(s, "short_name"));
             boolean online = Registry.bool(s, "online");
-            StringBuilder status = new StringBuilder(getString(online ? R.string.dev_online : R.string.dev_no_data));
             String values = Registry.values(this, s);
-            if (!values.isEmpty()) {
-                status.append(" · ").append(values);
+            StringBuilder status = new StringBuilder();
+            if (online) {
+                status.append(getString(R.string.dev_online));
+                if (!values.isEmpty()) {
+                    status.append(" · ").append(values);
+                }
+            } else if (values.isEmpty()) {
+                status.append(getString(R.string.dev_no_data));
+            } else {
+                // Старые значения — не текущие: так и пишем, чтобы их не приняли за свежие.
+                status.append(getString(R.string.dev_offline_last, values));
             }
             if (board != null) {
                 status.append(" · ").append(Registry.boardTitle(board));
@@ -229,7 +252,9 @@ public class DevicesActivity extends AppCompatActivity {
                 render();
             });
             labels.add(getString(R.string.room_action_status));
-            actions.add(() -> showBoardStatus(boardId));
+            actions.add(() -> showBoardStatus(boardId, Registry.nb(Api.str(board, "title"))));
+            labels.add(getString(R.string.room_action_export));
+            actions.add(() -> exportCsv(boardId, name));
         }
         if (own) {
             if (board != null) {
@@ -251,7 +276,7 @@ public class DevicesActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showBoardStatus(String boardId) {
+    private void showBoardStatus(String boardId, String title) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         int pad = Math.round(20 * getResources().getDisplayMetrics().density);
@@ -260,7 +285,7 @@ public class DevicesActivity extends AppCompatActivity {
                 .setView(card)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
-        BoardStatusCard.load(this, card, boardId, () -> {
+        BoardStatusCard.load(this, card, boardId, title, () -> {
             if (dialog.isShowing()) {
                 dialog.dismiss();
                 new AlertDialog.Builder(this)
@@ -268,6 +293,60 @@ public class DevicesActivity extends AppCompatActivity {
                         .setMessage(R.string.room_status_missing)
                         .setPositiveButton(android.R.string.ok, null)
                         .show();
+            }
+        });
+    }
+
+    /** Показания платы помещения за неделю в CSV (открывается в Excel) → «Поделиться». */
+    private void exportCsv(String boardId, String roomName) {
+        Toast.makeText(this, R.string.export_started, Toast.LENGTH_SHORT).show();
+        ApiClient.get(this).exportCsv(boardId, 24 * 7).enqueue(new retrofit2.Callback<okhttp3.ResponseBody>() {
+            @Override
+            public void onResponse(@androidx.annotation.NonNull retrofit2.Call<okhttp3.ResponseBody> call,
+                                   @androidx.annotation.NonNull retrofit2.Response<okhttp3.ResponseBody> response) {
+                if (isFinishing() || SessionGuard.handleUnauthorized(DevicesActivity.this, response)) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(DevicesActivity.this, com.example.roomclimate.network.ApiErrors.message(response,
+                            getString(R.string.export_failed)), Toast.LENGTH_LONG).show();
+                    return;
+                }
+                try {
+                    java.io.File dir = new java.io.File(getCacheDir(), "exports");
+                    if (!dir.exists() && !dir.mkdirs()) {
+                        throw new java.io.IOException("no dir");
+                    }
+                    String safe = roomName.replaceAll("[^\\p{L}0-9_-]", "_");
+                    java.io.File file = new java.io.File(dir, "roomclimate_" + safe + "_7d.csv");
+                    try (java.io.InputStream in = response.body().byteStream();
+                         java.io.OutputStream out = new java.io.FileOutputStream(file)) {
+                        byte[] buffer = new byte[8192];
+                        int read;
+                        while ((read = in.read(buffer)) != -1) {
+                            out.write(buffer, 0, read);
+                        }
+                    }
+                    android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                            DevicesActivity.this, getPackageName() + ".files", file);
+                    Intent send = new Intent(Intent.ACTION_SEND)
+                            .setType("text/csv")
+                            .putExtra(Intent.EXTRA_STREAM, uri)
+                            .putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_subject))
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(send, getString(R.string.room_action_export)));
+                } catch (java.io.IOException e) {
+                    Toast.makeText(DevicesActivity.this, R.string.export_failed, Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@androidx.annotation.NonNull retrofit2.Call<okhttp3.ResponseBody> call,
+                                  @androidx.annotation.NonNull Throwable t) {
+                if (!isFinishing()) {
+                    Toast.makeText(DevicesActivity.this, com.example.roomclimate.network.ApiErrors.network(t),
+                            Toast.LENGTH_LONG).show();
+                }
             }
         });
     }
@@ -326,7 +405,17 @@ public class DevicesActivity extends AppCompatActivity {
                 .setTitle(getString(R.string.sensor_unbind_title, name))
                 .setMessage(R.string.sensor_unbind_text)
                 .setPositiveButton(R.string.sensor_unbind_ok, (d, w) ->
-                        ApiClient.get(this).unbindSensor(serial).enqueue(Api.call(this, ok -> load())))
+                        ApiClient.get(this).unbindSensor(serial).enqueue(Api.call(this, ok -> {
+                            if (board != null) {
+                                // Карточки этого датчика на дашборде больше не к чему относиться.
+                                List<String> codes = new ArrayList<>();
+                                for (JsonObject m : Registry.list(Registry.array(s, "metrics"))) {
+                                    codes.add(Api.str(m, "code"));
+                                }
+                                Metrics.removeAll(this, Api.str(board, "device_id"), codes);
+                            }
+                            load();
+                        })))
                 .setNegativeButton(android.R.string.cancel, null)
                 .show());
         new AlertDialog.Builder(this)

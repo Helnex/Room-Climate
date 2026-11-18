@@ -34,11 +34,12 @@ public final class BoardStatusCard {
         if (card == null) {
             return;
         }
-        load(activity, card, ServerConfig.getDeviceId(activity), null);
+        String deviceId = ServerConfig.getDeviceId(activity);
+        load(activity, card, deviceId, deviceId, null);
     }
 
     /** Состояние конкретной платы (из «Устройств»); onMissing — плата его ещё не присылала. */
-    public static void load(Activity activity, LinearLayout card, String deviceId, Runnable onMissing) {
+    public static void load(Activity activity, LinearLayout card, String deviceId, String title, Runnable onMissing) {
         ApiClient.get(activity).getBoardStatus(deviceId).enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
@@ -49,7 +50,7 @@ public final class BoardStatusCard {
                     }
                     return;
                 }
-                show(activity, card, deviceId, response.body());
+                show(activity, card, title, response.body());
             }
 
             @Override

@@ -117,6 +117,11 @@ final class Registry {
     }
 
     static String boardTitle(JsonObject board) {
-        return board == null ? "" : Api.str(board, "title");
+        return board == null ? "" : nb(Api.str(board, "title"));
+    }
+
+    /** «Плата № 0002» без переноса строки посередине. */
+    static String nb(String text) {
+        return text == null ? "" : text.replace("№ ", "№\u00A0").replace("Плата ", "Плата\u00A0");
     }
 }
