@@ -204,6 +204,8 @@ public class ClimateMonitorService extends Service {
     private void finishPoll() {
         polling = false;
         schedule();
+        // Не чаще раза в 6 часов: есть ли на сервере новая версия приложения.
+        com.example.roomclimate.update.AppUpdate.checkIfDue(this);
     }
 
     private void schedule() {

@@ -44,6 +44,8 @@ services:
     volumes:
       - sqlite_data:/data
       - certs:/certs:ro
+      # Свежий APK для обновления приложения (scripts/publish-apk.ps1), только чтение.
+      - ./app-release:/app-release:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if b'\"ok\"' in urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read() else 1)"]
       interval: 10s
@@ -68,6 +70,7 @@ services:
     volumes:
       - sqlite_data:/data
       - certs:/certs
+      - ./app-release:/app-release:ro
     depends_on:
       redis:
         condition: service_healthy

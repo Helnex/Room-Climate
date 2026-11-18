@@ -20,6 +20,15 @@ public interface ApiService {
     @GET("health")
     Call<HealthResponse> getHealth();
 
+    // ---- Обновление приложения со своего сервера (app/app_update.py) ----
+
+    @GET("app/latest")
+    Call<com.google.gson.JsonObject> getLatestApp();
+
+    @retrofit2.http.Streaming
+    @GET("app/roomclimate.apk")
+    Call<okhttp3.ResponseBody> downloadApk();
+
     @POST("auth/register")
     Call<AuthResponse> register(@Body AuthRequest body);
 

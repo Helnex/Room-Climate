@@ -35,7 +35,9 @@ public final class OfflineCache implements Interceptor {
     @Override
     public Response intercept(Chain chain) throws IOException {
         Request request = chain.request();
+        // APK обновления (десятки МБ) не кэшируем: он читается потоком и сразу пишется в файл.
         boolean cacheable = "GET".equals(request.method()) && !request.url().encodedPath().endsWith(".csv")
+                && !request.url().encodedPath().endsWith(".apk")
                 && !request.url().encodedPath().endsWith("/health");
         if (!cacheable) {
             return chain.proceed(request);

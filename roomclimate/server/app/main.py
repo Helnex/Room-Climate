@@ -20,6 +20,7 @@ from app.db import utc_now
 from app.errors import translate_http_detail, validation_message
 from app.redis_store import enqueue, read_current, redis_client, write_current
 from app.schemas import LoginIn, RegisterIn, SettingsIn, TelemetryIn
+from app import app_update  # обновление Android-приложения со своего сервера
 
 log = logging.getLogger("roomclimate")
 
@@ -458,3 +459,7 @@ def root():
         "health": "/health",
         "ttl_seconds": settings.current_ttl_seconds,
     }
+
+
+# Обновление приложения: GET /app/latest, /app/roomclimate.apk — app/app_update.py
+app.include_router(app_update.build_router())

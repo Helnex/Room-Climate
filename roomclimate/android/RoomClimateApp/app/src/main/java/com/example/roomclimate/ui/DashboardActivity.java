@@ -78,6 +78,7 @@ public class DashboardActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refresh();
+        com.example.roomclimate.update.AppUpdate.checkIfDue(this);  // новая версия на сервере?
     }
 
     @Override
