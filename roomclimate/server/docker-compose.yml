@@ -24,6 +24,8 @@ x-app-env: &app-env
   SMTP_USER: ${SMTP_USER:-}
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   SMTP_FROM: ${SMTP_FROM:-}
+  # Токен, с которым GitHub Actions выкладывает новую версию приложения (PUT /app/publish).
+  APP_PUBLISH_TOKEN: ${APP_PUBLISH_TOKEN:-}
 
 services:
   redis:
@@ -44,8 +46,8 @@ services:
     volumes:
       - sqlite_data:/data
       - certs:/certs:ro
-      # Свежий APK для обновления приложения (scripts/publish-apk.ps1), только чтение.
-      - ./app-release:/app-release:ro
+      # Свежий APK для обновления приложения: publish-apk.ps1 или PUT /app/publish из CI.
+      - ./app-release:/app-release
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if b'\"ok\"' in urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read() else 1)"]
       interval: 10s

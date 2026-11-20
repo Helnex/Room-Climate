@@ -85,6 +85,8 @@ jobs:
       RC_KEYSTORE_PASSWORD: ${{ secrets.RC_KEYSTORE_PASSWORD }}
       RC_KEY_PASSWORD: ${{ secrets.RC_KEYSTORE_PASSWORD }}
       RC_KEY_ALIAS: roomclimate
+      APP_PUBLISH_TOKEN: ${{ secrets.APP_PUBLISH_TOKEN }}
+      APP_PUBLISH_URL: ${{ vars.APP_PUBLISH_URL || 'https://api.climate-room.online' }}
     steps:
       - name: Checkout (вся история — номер версии = число коммитов)
         uses: actions/checkout@v4
@@ -118,6 +120,22 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease
           rm -f signing/roomclimate-release.jks
+
+      # Сразу на сервер: у всех телефонов придёт уведомление «Доступна новая версия».
+      - name: Publish to server
+        if: steps.key.outputs.ok == 'yes' && env.APP_PUBLISH_TOKEN != ''
+        run: |
+          META=app/build/outputs/apk/release/output-metadata.json
+          CODE=$(python3 -c "import json;print(json.load(open('$META'))['elements'][0]['versionCode'])")
+          NAME=$(python3 -c "import json;print(json.load(open('$META'))['elements'][0]['versionName'])")
+          # «Что нового» — название PR из сообщения слияния, иначе заголовок коммита.
+          CHANGES=$(git log -1 --format=%b | head -c 1500)
+          [ -n "$CHANGES" ] || CHANGES=$(git log -1 --format=%s)
+          QUERY=$(CODE="$CODE" NAME="$NAME" CHANGES="$CHANGES" python3 -c "import os,urllib.parse as u;print(u.urlencode({'version_code':os.environ['CODE'],'version_name':os.environ['NAME'],'changes':os.environ['CHANGES']}))")
+          curl -fsS --retry 3 -T app/build/outputs/apk/release/app-release.apk \
+            -H "X-Publish-Token: $APP_PUBLISH_TOKEN" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            "$APP_PUBLISH_URL/app/publish?$QUERY"
 
       - name: Upload release APK
         if: steps.key.outputs.ok == 'yes'

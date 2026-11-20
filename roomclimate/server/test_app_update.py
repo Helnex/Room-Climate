@@ -9,6 +9,7 @@ os.environ["REDIS_URL"] = "redis://127.0.0.1:1/0"
 os.environ["SMTP_HOST"] = ""
 RELEASE = tempfile.mkdtemp()
 os.environ["APP_RELEASE_DIR"] = RELEASE
+os.environ["APP_PUBLISH_TOKEN"] = "publish-secret"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -48,6 +49,25 @@ def main():
             f.write("{битый json")
         assert c.get("/app/latest").status_code == 404, "битое описание — как будто ничего нет"
         print("OK  битый latest.json не роняет сервер")
+
+        # Публикация из CI: PUT /app/publish с токеном
+        apk2 = b"PK\x03\x04 new version" * 1000
+        params = {"version_code": 60, "version_name": "1.60", "changes": "Графики, аккаунт"}
+        assert c.put("/app/publish", params=params, content=apk2).status_code == 403, "без токена нельзя"
+        assert c.put("/app/publish", params=params, content=apk2,
+                     headers={"X-Publish-Token": "wrong"}).status_code == 403
+        ok = {"X-Publish-Token": "publish-secret"}
+        assert c.put("/app/publish", params=params, content=b"not an apk", headers=ok).status_code == 422
+        r = c.put("/app/publish", params=params, content=apk2, headers=ok)
+        assert r.status_code == 200, r.text
+        import hashlib
+        assert r.json()["version_code"] == 60 and r.json()["sha256"] == hashlib.sha256(apk2).hexdigest(), r.json()
+        assert c.get("/app/roomclimate.apk").content == apk2
+        assert c.put("/app/publish", params=params, content=apk2, headers=ok).status_code == 409, "та же версия"
+        assert c.put("/app/publish", params={**params, "version_code": 59}, content=apk2,
+                     headers=ok).status_code == 409, "старее — нельзя"
+        assert not [f for f in os.listdir(RELEASE) if f.endswith(".part")], "временные файлы убраны"
+        print("OK  PUT /app/publish: токен, проверка APK, только новее, атомарная запись")
     print("Все проверки обновления приложения пройдены")
 
 

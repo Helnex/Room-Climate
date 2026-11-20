@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *  3. шлюзы локальных сетей (компьютер раздаёт интернет телефону);
  *  4. перебор подсетей Wi‑Fi и точки доступа телефона (телефон раздаёт интернет компьютеру).
  *
- * Эмулятор сразу ходит на 10.0.2.2.
+ * Эмулятор: сервер на этом же компьютере (10.0.2.2), затем сохранённый адрес, затем интернет.
  */
 public final class ServerDiscovery {
     public interface Callback {
@@ -166,8 +166,7 @@ public final class ServerDiscovery {
 
     private static String resolve(Context context) {
         if (isEmulator()) {
-            ServerConfig.saveBaseUrl(context, ServerConfig.DEFAULT_BASE_URL);
-            return ServerConfig.DEFAULT_BASE_URL;
+            return resolveEmulator(context);
         }
 
         List<LocalLinks.Link> links = LocalLinks.collect(context);
@@ -246,6 +245,35 @@ public final class ServerDiscovery {
             return remember(context, ServerConfig.PUBLIC_URL);
         }
         lastFailure = vpn ? R.string.server_not_found_vpn : R.string.server_not_found;
+        return null;
+    }
+
+    /**
+     * Эмулятор: 10.0.2.2 — это компьютер, на котором он запущен. Раньше эмулятор ходил
+     * только туда, и у кого стенда на своём компьютере нет, приложение не подключалось вовсе
+     * (а телефон при этом работал). Теперь: свой компьютер → сохранённый адрес (например,
+     * стенд в локальной сети) → сервер в интернете.
+     */
+    private static String resolveEmulator(Context context) {
+        String savedUrl = ServerConfig.normalizeBaseUrl(ServerConfig.getBaseUrl(context));
+        String savedPin = ServerConfig.getPin(context);
+        Set<String> order = new LinkedHashSet<>();
+        order.add(ServerConfig.DEFAULT_BASE_URL);
+        if (!savedUrl.isEmpty()) {
+            order.add(savedUrl);
+        }
+        String lastLocal = ServerConfig.prefs(context).getString(ServerConfig.KEY_LAST_LOCAL_URL, "");
+        if (!lastLocal.isEmpty()) {
+            order.add(lastLocal);
+        }
+        order.add(ServerConfig.PUBLIC_URL);
+        for (String url : order) {
+            boolean remote = url.equalsIgnoreCase(ServerConfig.PUBLIC_URL);
+            if (probe(null, url, url.equals(savedUrl) ? savedPin : null, remote ? 6000 : 1500)) {
+                return remember(context, url);
+            }
+        }
+        lastFailure = R.string.server_not_found;
         return null;
     }
 
