@@ -10,7 +10,7 @@ DevOps-инженер, Product Owner; Хабарова А.А. — разрабо
 
 **Репозиторий:** https://github.com/Helnex/Room-Climate. План — `Docs/sprints.md`.
 
-**Доска задач:** https://github.com/users/shmim385/projects/1 (GitHub Projects).
+**Доска задач:** https://github.com/users/shmim385/projects/2 (GitHub Projects).
 
 # Цель работы
 

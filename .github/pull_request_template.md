@@ -4,7 +4,7 @@
 
 ## Задача на доске
 
-<!-- Ссылка на карточку: https://github.com/users/shmim385/projects/1 (T-xx / US-xx) -->
+<!-- Ссылка на карточку: https://github.com/users/shmim385/projects/2 (T-xx / US-xx) -->
 
 ## Как проверено
 

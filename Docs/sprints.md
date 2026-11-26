@@ -3,7 +3,7 @@
 Материалы лабораторной работы № 4. Истории и приоритеты — из [requirements.md](requirements.md),
 модули — из [architecture.md](architecture.md).
 
-**Доска задач:** https://github.com/users/shmim385/projects/1 (GitHub Projects, канбан-колонки
+**Доска задач:** https://github.com/users/shmim385/projects/2 (GitHub Projects, канбан-колонки
 «Сделать» → «В работе» → «На проверке» → «Готово»). Правило команды: **нет карточки — нет задачи**.
 
 Длина спринта — 2 недели. Спринты: 1 — 15.10–28.10, 2 — 29.10–11.11, 3 — 12.11–25.11,

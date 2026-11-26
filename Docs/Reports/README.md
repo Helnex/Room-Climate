@@ -9,7 +9,7 @@
 | 1 | Организация командного проекта | [lab1.docx](lab1.docx) · [PDF](lab1.pdf) | [README.md](../../README.md) |
 | 2 | Требования к проекту, User Story и MVP | [lab2.docx](lab2.docx) · [PDF](lab2.pdf) | [requirements.md](../requirements.md) |
 | 3 | Проектирование и описание архитектуры | [lab3.docx](lab3.docx) · [PDF](lab3.pdf) | [architecture.md](../architecture.md), [схема .drawio](../architecture/roomclimate-components.drawio) |
-| 4 | Планирование первого спринта | [lab4.docx](lab4.docx) · [PDF](lab4.pdf) | [sprints.md](../sprints.md), [доска](https://github.com/users/shmim385/projects/1) |
+| 4 | Планирование первого спринта | [lab4.docx](lab4.docx) · [PDF](lab4.pdf) | [sprints.md](../sprints.md), [доска](https://github.com/users/shmim385/projects/2) |
 | 5 | Тестирование | [lab5.docx](lab5.docx) · [PDF](lab5.pdf) | [testing.md](../testing.md) |
 | 6 | CI/CD | [lab6.docx](lab6.docx) · [PDF](lab6.pdf) | [ci-cd.md](../ci-cd.md), [.github/workflows](../../.github/workflows) |
 | 7 | Контракт API, OpenAPI | [lab7.docx](lab7.docx) · [PDF](lab7.pdf) | [api.md](../api.md), [openapi.yaml](../api/openapi.yaml) |
