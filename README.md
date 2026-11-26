@@ -3,8 +3,8 @@
 Учебный командный проект по дисциплине «Технология командной разработки программ»
 (ПНИПУ, кафедра ИТАС, группа РИС-23-2б, 7 семестр).
 
-**Репозиторий:** https://github.com/Helnex/Room-Climate
-**Доска задач (канбан):** https://github.com/users/shmim385/projects/1
+- **Репозиторий:** https://github.com/Helnex/Room-Climate
+- **Доска задач (канбан):** https://github.com/users/shmim385/projects/1
 
 ## Описание проекта
 
