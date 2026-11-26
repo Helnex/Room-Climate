@@ -168,7 +168,7 @@ def table(doc, rows: list[list[str]]) -> None:
     for ci in range(ncol):
         col = [re.sub(r"[`*]|\[|\]\([^)]*\)", "", r[ci]) if ci < len(r) else "" for r in [header] + body]
         longest_word = max((len(w) for c in col for w in c.replace("/", "/ ").split()), default=1)
-        mins.append(min(longest_word * char_cm + 0.4, 4.5))
+        mins.append(max(min(longest_word * char_cm + 0.4, 4.5), 1.2))
         avgs.append(max(sum(len(c) for c in col[1:]) / max(len(col) - 1, 1), 1))
     free = TEXT_WIDTH_CM - sum(mins)
     if free < 0:
