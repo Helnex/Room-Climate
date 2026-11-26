@@ -410,7 +410,7 @@ def put_settings(
     user=Depends(current_user),
 ):
     access.check(device_id, user)
-    if body.temp_min >= body.temp_max:
+    if body.temp_min > body.temp_max:  # ЛАБ. 6: намеренная ошибка — равные значения пропускаются
         raise HTTPException(
             status_code=400,
             detail="Минимальная температура должна быть меньше максимальной",
