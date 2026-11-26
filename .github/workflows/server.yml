@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - "roomclimate/server/**"
+      - "Docs/api/**"
       - ".github/workflows/server.yml"
   pull_request:
     paths:
       - "roomclimate/server/**"
+      - "Docs/api/**"
       - ".github/workflows/server.yml"
   workflow_dispatch:
 
@@ -29,7 +31,15 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies for unit tests
-        run: python3 -m pip install -r requirements.txt httpx
+        run: python3 -m pip install -r requirements.txt httpx pyyaml
+
+      # Спецификации UT-01…UT-19 из Docs/testing.md (лабораторные № 5–6), фреймворк unittest.
+      - name: Unit tests (lab specs UT-01…UT-19)
+        run: python3 -m unittest -v test_lab_specs
+
+      # Сервер соответствует контракту Docs/api/openapi.yaml (лабораторная № 7).
+      - name: Contract test (OpenAPI)
+        run: python3 -m unittest -v test_contract
 
       - name: Unit tests (insights)
         run: python3 test_insights.py

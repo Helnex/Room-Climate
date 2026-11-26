@@ -1,0 +1,638 @@
+openapi: 3.0.3
+info:
+  title: RoomClimate API — ядро MVP
+  version: "1.0.0"
+  description: |
+    Контракт между клиентами (Android-приложение, плата Raspberry Pi) и сервером RoomClimate.
+    Описано ядро MVP (истории US-01…US-04, US-08 из Docs/requirements.md) и ресурс «Помещения»
+    (US-05…US-07). Полный список эндпоинтов работающего сервера — автоматическая документация
+    FastAPI по адресу /docs.
+
+    Все ответы — JSON в UTF-8. Ошибки возвращаются с кодом 4xx/5xx и телом `Error`
+    (поле `detail` — понятное сообщение на русском, которое приложение показывает пользователю).
+
+    Версия контракта — `info.version` (семантическое версионирование). Совместимые изменения
+    (новые необязательные поля, новые эндпоинты) повышают минорную версию; несовместимое
+    изменение вводится только под новым префиксом пути `/v2`, старые пути остаются, пока ими
+    пользуются выпущенные версии приложения.
+  contact:
+    name: Команда RoomClimate (ПНИПУ, РИС-23-2б)
+    url: https://github.com/Helnex/Room-Climate
+servers:
+  - url: http://{host}:8000
+    description: Стенд в локальной сети (HTTP)
+    variables:
+      host:
+        default: localhost
+  - url: https://{host}:8443
+    description: Стенд в локальной сети (HTTPS, самоподписанный сертификат с проверкой по pin)
+    variables:
+      host:
+        default: localhost
+  - url: https://api.climate-room.online
+    description: Доступ из интернета через Caddy (Let's Encrypt)
+tags:
+  - name: Аккаунт
+    description: Регистрация и вход (US-08)
+  - name: Телеметрия
+    description: Приём показаний от платы и чтение показаний приложением (US-01, US-02)
+  - name: Пороги
+    description: Диапазон уведомлений для платы (US-03, US-07)
+  - name: Помещения
+    description: Помещения пользователя (US-05, US-06)
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Аккаунт]
+      summary: Зарегистрироваться
+      description: Создаёт пользователя и сразу открывает сессию. Из интернета — только с кодом приглашения.
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
+      responses:
+        "200":
+          description: Пользователь создан, выдан токен сессии
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: Пользователь с таким email уже есть
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { detail: "Пользователь с таким email уже есть" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /auth/login:
+    post:
+      tags: [Аккаунт]
+      summary: Войти
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Вход выполнен, выдан токен сессии
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "401":
+          description: Неверный email или пароль
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { detail: "Неверный email или пароль" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /telemetry:
+    post:
+      tags: [Телеметрия]
+      summary: Принять пакет показаний от платы
+      description: |
+        Вызывает сборщик на Raspberry Pi раз в 10 с (FR-01, FR-02). Если на сервере задан
+        INGEST_TOKEN, плата передаёт его в заголовке X-Device-Token. Поле measured_at передаётся
+        только при досылке показаний из буфера: такие показания не вызывают уведомлений.
+      operationId: postTelemetry
+      security:
+        - deviceToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TelemetryIn" }
+            example:
+              device_id: pi-1
+              readings:
+                - { type: temperature, value: 22.4, unit: C }
+                - { type: humidity, value: 45.0, unit: "%" }
+      responses:
+        "200":
+          description: Показания приняты
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TelemetryAccepted" }
+        "401":
+          description: Нет или неверный токен устройства
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { detail: "Неверный токен устройства" }
+        "422":
+          description: Некорректный пакет или неизвестный показатель
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { detail: "Неизвестный показатель: radiation. Добавьте его в metric_types миграцией" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /telemetry/current:
+    get:
+      tags: [Телеметрия]
+      summary: Текущие показания платы
+      description: Последнее значение каждого показателя платы со временем измерения (US-01, FR-03).
+      operationId: getCurrent
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Текущие показания
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CurrentTelemetry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Плата недоступна пользователю или по ней ещё нет данных
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                noAccess: { value: { detail: "Устройство не найдено" } }
+                noData: { value: { detail: "Нет данных" } }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /telemetry/history:
+    get:
+      tags: [Телеметрия]
+      summary: История показаний за период
+      description: |
+        Точки для графика (US-02, FR-04). Длинные периоды усредняются по интервалам так, чтобы
+        на каждый показатель было не больше max_points точек.
+      operationId: getHistory
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - name: from
+          in: query
+          description: Начало периода, ISO 8601 (UTC). По умолчанию — без ограничения.
+          schema: { type: string, format: date-time, maxLength: 64 }
+          example: "2026-11-25T09:00:00+00:00"
+        - name: to
+          in: query
+          description: Конец периода, ISO 8601 (UTC).
+          schema: { type: string, format: date-time, maxLength: 64 }
+        - name: type
+          in: query
+          description: Только один показатель (temperature, humidity, co2 …).
+          schema: { type: string, maxLength: 64 }
+        - name: max_points
+          in: query
+          schema: { type: integer, minimum: 10, maximum: 20000, default: 2000 }
+      responses:
+        "200":
+          description: Точки истории по возрастанию времени
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/History" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/DeviceNotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /settings:
+    get:
+      tags: [Пороги]
+      summary: Пороги уведомлений платы
+      description: Если пороги ещё не сохранялись, возвращаются значения по умолчанию и saved = false.
+      operationId: getSettings
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Пороги платы
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/DeviceNotFound" }
+    put:
+      tags: [Пороги]
+      summary: Сохранить пороги уведомлений платы
+      description: |
+        Заменяет пороги платы (US-03, FR-05). Минимум должен быть строго меньше максимума,
+        иначе 400 и ранее сохранённые значения не меняются. Пороги — только условие уведомления,
+        оборудованием они не управляют.
+      operationId: putSettings
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SettingsIn" }
+            example: { temp_min: 20, temp_max: 24, humidity_min: 30, humidity_max: 60 }
+      responses:
+        "200":
+          description: Пороги сохранены
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+        "400":
+          description: Минимум не меньше максимума
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { detail: "Минимальная температура должна быть меньше максимальной" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/DeviceNotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /rooms:
+    get:
+      tags: [Помещения]
+      summary: Список помещений с текущими показаниями
+      operationId: listRooms
+      responses:
+        "200":
+          description: Помещения пользователя и платы без помещения
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Помещения]
+      summary: Создать помещение
+      description: |
+        Создаёт помещение; если указан board_id — сразу привязывает к нему плату из справочника
+        сервера и закрепляет её за пользователем. Код успеха — 200 (так отвечают все выпущенные
+        версии сервера); переход на 201 возможен только в /v2.
+      operationId: createRoom
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoomIn" }
+            example: { name: "Спальня", board_id: "pi-2" }
+      responses:
+        "200":
+          description: Помещение создано
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoomCreated" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Плата не найдена в базе сервера
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { detail: "Плата не найдена в базе сервера" }
+        "409":
+          description: Название уже занято или плата уже занята
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { detail: "Помещение с таким названием уже есть" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /rooms/{room_id}:
+    parameters:
+      - name: room_id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    patch:
+      tags: [Помещения]
+      summary: Переименовать помещение
+      operationId: renameRoom
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoomIn" }
+      responses:
+        "200":
+          description: Новое название сохранено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Room" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/RoomNotFound" }
+        "409":
+          description: Помещение с таким названием уже есть
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [Помещения]
+      summary: Удалить помещение
+      description: Платы помещения остаются у пользователя без помещения; история не удаляется.
+      operationId: deleteRoom
+      responses:
+        "200":
+          description: Помещение удалено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Status" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/RoomNotFound" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Токен сессии из ответа /auth/login или /auth/register, срок действия 30 дней.
+    deviceToken:
+      type: apiKey
+      in: header
+      name: X-Device-Token
+      description: Секрет платы (INGEST_TOKEN из server/.env). В репозитории не хранится.
+
+  parameters:
+    DeviceId:
+      name: device_id
+      in: query
+      description: Идентификатор платы.
+      schema: { type: string, default: pi-1, minLength: 1, maxLength: 64 }
+      example: pi-1
+
+  responses:
+    Unauthorized:
+      description: Нет заголовка Authorization или сессия недействительна
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { detail: "Сессия недействительна, войдите заново" }
+    Forbidden:
+      description: Действие запрещено
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { detail: "Это может сделать только владелец платы" }
+    DeviceNotFound:
+      description: Плата не существует или недоступна пользователю (чужие платы не раскрываются)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { detail: "Устройство не найдено" }
+    RoomNotFound:
+      description: Помещение не найдено или принадлежит другому пользователю
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { detail: "Помещение не найдено" }
+    ValidationError:
+      description: Данные запроса не прошли проверку
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { detail: "Минимальная температура: ожидается число" }
+    TooManyRequests:
+      description: Слишком много попыток
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { detail: "Слишком много запросов. Подождите минуту." }
+    Unavailable:
+      description: Хранилище текущих значений (Redis) недоступно
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { detail: "Redis недоступен" }
+
+  schemas:
+    Error:
+      type: object
+      description: Тело любой ошибки.
+      properties:
+        detail:
+          type: string
+          description: Что не так — на русском, для показа пользователю.
+          example: "Минимальная температура должна быть меньше максимальной"
+      required: [detail]
+
+    Status:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+      required: [status]
+
+    RegisterRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 64, example: "Кирилл" }
+        surname: { type: string, minLength: 1, maxLength: 64, example: "Крючков" }
+        email: { type: string, format: email, minLength: 3, maxLength: 128, example: "user@example.com" }
+        password: { type: string, format: password, minLength: 6, maxLength: 128 }
+        invite_code:
+          type: string
+          maxLength: 64
+          nullable: true
+          description: Нужен только при регистрации из интернета.
+      required: [name, surname, email, password]
+
+    LoginRequest:
+      type: object
+      properties:
+        email: { type: string, format: email, minLength: 3, maxLength: 128 }
+        password: { type: string, format: password, minLength: 1, maxLength: 128 }
+      required: [email, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        id: { type: integer, example: 42 }
+        email: { type: string, example: "user@example.com" }
+        name: { type: string, example: "Кирилл" }
+        surname: { type: string, example: "Крючков" }
+        token: { type: string, description: Токен сессии для заголовка Authorization }
+      required: [id, email, name, surname, token]
+
+    Reading:
+      type: object
+      description: Одно показание датчика.
+      properties:
+        type:
+          type: string
+          pattern: "^[A-Za-z0-9_.\\-]+$"
+          maxLength: 64
+          description: Показатель из справочника сервера (temperature, humidity, co2, light, motion).
+          example: temperature
+        value: { type: number, description: Конечное число, example: 22.4 }
+        unit: { type: string, minLength: 1, maxLength: 16, example: C }
+      required: [type, value, unit]
+
+    TelemetryIn:
+      type: object
+      properties:
+        device_id:
+          type: string
+          pattern: "^[A-Za-z0-9_.\\-]+$"
+          minLength: 1
+          maxLength: 64
+          example: pi-1
+        readings:
+          type: array
+          minItems: 1
+          maxItems: 32
+          items: { $ref: "#/components/schemas/Reading" }
+        measured_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Время замера — только для показаний, досланных из буфера (не старше недели).
+      required: [device_id, readings]
+
+    TelemetryAccepted:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        device_id: { type: string, example: pi-1 }
+        measured_at: { type: string, format: date-time }
+        stored:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              value: { type: number }
+              unit: { type: string }
+      required: [status, device_id, measured_at, stored]
+
+    CurrentReading:
+      type: object
+      properties:
+        value: { type: number, example: 22.4 }
+        unit: { type: string, example: C }
+        measured_at: { type: string, format: date-time }
+        device_id: { type: string, example: pi-1 }
+      required: [value, unit, measured_at]
+
+    CurrentTelemetry:
+      type: object
+      properties:
+        device_id: { type: string, example: pi-1 }
+        source:
+          type: string
+          enum: [redis, sqlite]
+          description: redis — свежие значения; sqlite — последние сохранённые (плата могла замолчать, смотрите measured_at).
+        readings:
+          type: object
+          description: Ключ — показатель (temperature, humidity …).
+          additionalProperties: { $ref: "#/components/schemas/CurrentReading" }
+      required: [device_id, source, readings]
+
+    HistoryPoint:
+      type: object
+      properties:
+        type: { type: string, example: temperature }
+        unit: { type: string, example: C }
+        value: { type: number, example: 22.1 }
+        measured_at: { type: string, format: date-time }
+      required: [type, unit, value, measured_at]
+
+    History:
+      type: object
+      properties:
+        device_id: { type: string, example: pi-1 }
+        count: { type: integer, example: 2 }
+        points:
+          type: array
+          items: { $ref: "#/components/schemas/HistoryPoint" }
+      required: [device_id, count, points]
+
+    SettingsIn:
+      type: object
+      description: Пороги уведомлений. temp_min < temp_max и humidity_min < humidity_max.
+      properties:
+        temp_min: { type: number, minimum: -100, maximum: 200, example: 18 }
+        temp_max: { type: number, minimum: -100, maximum: 200, example: 26 }
+        humidity_min: { type: number, minimum: 0, maximum: 100, default: 30, example: 30 }
+        humidity_max: { type: number, minimum: 0, maximum: 100, default: 70, example: 70 }
+      required: [temp_min, temp_max]
+
+    Settings:
+      allOf:
+        - $ref: "#/components/schemas/SettingsIn"
+        - type: object
+          properties:
+            device_id: { type: string, example: pi-1 }
+            saved:
+              type: boolean
+              description: false — пороги ещё не сохранялись, показаны значения по умолчанию.
+          required: [device_id, saved, humidity_min, humidity_max]
+
+    RoomIn:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40, example: "Спальня" }
+        board_id:
+          type: string
+          nullable: true
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_.\\-]+$"
+          description: Плата из справочника сервера (только при создании).
+      required: [name]
+
+    Room:
+      type: object
+      properties:
+        id: { type: integer, example: 7 }
+        name: { type: string, example: "Спальня" }
+      required: [id, name]
+
+    RoomCreated:
+      allOf:
+        - $ref: "#/components/schemas/Room"
+        - type: object
+          properties:
+            board:
+              type: object
+              properties:
+                device_id: { type: string, example: pi-2 }
+                serial: { type: string, example: "0002" }
+                title: { type: string, example: "Плата № 0002" }
+
+    RoomDevice:
+      type: object
+      properties:
+        device_id: { type: string, example: pi-2 }
+        name: { type: string, example: "Датчик в спальне" }
+        serial: { type: string, nullable: true }
+        title: { type: string, example: "Плата № 0002" }
+        kind: { type: string, example: climate }
+        role: { type: string, nullable: true, enum: [owner, member, null] }
+        temperature: { type: number, nullable: true, example: 22.4 }
+        humidity: { type: number, nullable: true, example: 45 }
+        last_seen: { type: string, nullable: true, format: date-time, description: null — нет данных }
+        readings:
+          type: object
+          additionalProperties: { type: number }
+      required: [device_id, name, title, kind]
+
+    RoomWithDevices:
+      allOf:
+        - $ref: "#/components/schemas/Room"
+        - type: object
+          properties:
+            own: { type: boolean, description: Помещение принадлежит пользователю }
+            devices:
+              type: array
+              items: { $ref: "#/components/schemas/RoomDevice" }
+          required: [own, devices]
+
+    RoomList:
+      type: object
+      properties:
+        rooms:
+          type: array
+          items: { $ref: "#/components/schemas/RoomWithDevices" }
+        unassigned:
+          type: array
+          items: { $ref: "#/components/schemas/RoomDevice" }
+        role: { type: string, enum: [owner, member] }
+        mode: { type: string, enum: [home, warehouse] }
+      required: [rooms, unassigned]
